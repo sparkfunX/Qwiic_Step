@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="9.4.2">
+<eagle version="9.5.1">
 <drawing>
 <settings>
 <setting alwaysvectorfont="yes"/>
@@ -25416,6 +25416,7 @@ SparkFun BigTime Watch Kit&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;
 <part name="J9" library="SparkFun-Connectors" deviceset="CONN_02" device="3.5MM"/>
 <part name="C4" library="SparkFun-Capacitors" deviceset="0.1UF" device="-0603-100V-10%" value="0.1uF"/>
 <part name="J6" library="SparkFun-Connectors" deviceset="CONN_04" device="SCREW"/>
+<part name="SUPPLY5" library="SparkFun-PowerSymbols" deviceset="3.3V" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -25766,6 +25767,9 @@ and heat sinking/fan to reach this.</text>
 <attribute name="VALUE" x="111.76" y="20.066" size="1.778" layer="96" font="vector" rot="MR180"/>
 <attribute name="NAME" x="111.76" y="4.572" size="1.778" layer="95" font="vector" rot="MR180"/>
 </instance>
+<instance part="SUPPLY5" gate="G$1" x="91.44" y="22.86" smashed="yes">
+<attribute name="VALUE" x="91.44" y="25.654" size="1.778" layer="96" align="bottom-center"/>
+</instance>
 </instances>
 <busses>
 </busses>
@@ -25922,13 +25926,13 @@ and heat sinking/fan to reach this.</text>
 </segment>
 <segment>
 <pinref part="J7" gate="G$1" pin="6"/>
-<wire x1="88.9" y1="20.32" x2="91.44" y2="20.32" width="0.1524" layer="91"/>
-<label x="91.44" y="20.32" size="1.27" layer="95" xref="yes"/>
+<wire x1="88.9" y1="20.32" x2="93.98" y2="20.32" width="0.1524" layer="91"/>
+<label x="93.98" y="20.32" size="1.27" layer="95" xref="yes"/>
 </segment>
 <segment>
 <pinref part="J7" gate="G$1" pin="5"/>
-<wire x1="88.9" y1="17.78" x2="91.44" y2="17.78" width="0.1524" layer="91"/>
-<label x="91.44" y="17.78" size="1.27" layer="95" xref="yes"/>
+<wire x1="88.9" y1="17.78" x2="93.98" y2="17.78" width="0.1524" layer="91"/>
+<label x="93.98" y="17.78" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="CUR_REF" class="0">
@@ -26215,6 +26219,12 @@ and heat sinking/fan to reach this.</text>
 <pinref part="SUPPLY16" gate="G$1" pin="3.3V"/>
 <wire x1="233.68" y1="139.7" x2="233.68" y2="142.24" width="0.1524" layer="91"/>
 </segment>
+<segment>
+<pinref part="J7" gate="G$1" pin="4"/>
+<wire x1="88.9" y1="15.24" x2="91.44" y2="15.24" width="0.1524" layer="91"/>
+<wire x1="91.44" y1="15.24" x2="91.44" y2="22.86" width="0.1524" layer="91"/>
+<pinref part="SUPPLY5" gate="G$1" pin="3.3V"/>
+</segment>
 </net>
 <net name="SCL" class="0">
 <segment>
@@ -26314,11 +26324,6 @@ and heat sinking/fan to reach this.</text>
 <pinref part="JP1" gate="G$1" pin="2"/>
 <pinref part="SUPPLY14" gate="G$1" pin="VIN"/>
 <wire x1="55.88" y1="45.72" x2="55.88" y2="43.18" width="0.1524" layer="91"/>
-</segment>
-<segment>
-<pinref part="J7" gate="G$1" pin="4"/>
-<wire x1="88.9" y1="15.24" x2="91.44" y2="15.24" width="0.1524" layer="91"/>
-<label x="91.44" y="15.24" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="!SLEEP!" class="0">
@@ -26516,8 +26521,8 @@ and heat sinking/fan to reach this.</text>
 <net name="DTR" class="0">
 <segment>
 <pinref part="J7" gate="G$1" pin="1"/>
-<wire x1="88.9" y1="7.62" x2="91.44" y2="7.62" width="0.1524" layer="91"/>
-<label x="91.44" y="7.62" size="1.27" layer="95" xref="yes"/>
+<wire x1="88.9" y1="7.62" x2="93.98" y2="7.62" width="0.1524" layer="91"/>
+<label x="93.98" y="7.62" size="1.27" layer="95" xref="yes"/>
 </segment>
 <segment>
 <pinref part="C4" gate="G$1" pin="1"/>
@@ -26533,8 +26538,8 @@ and heat sinking/fan to reach this.</text>
 </segment>
 <segment>
 <pinref part="J7" gate="G$1" pin="3"/>
-<wire x1="88.9" y1="12.7" x2="91.44" y2="12.7" width="0.1524" layer="91"/>
-<label x="91.44" y="12.7" size="1.27" layer="95" xref="yes"/>
+<wire x1="88.9" y1="12.7" x2="93.98" y2="12.7" width="0.1524" layer="91"/>
+<label x="93.98" y="12.7" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="TXO" class="0">
@@ -26545,8 +26550,8 @@ and heat sinking/fan to reach this.</text>
 </segment>
 <segment>
 <pinref part="J7" gate="G$1" pin="2"/>
-<wire x1="88.9" y1="10.16" x2="91.44" y2="10.16" width="0.1524" layer="91"/>
-<label x="91.44" y="10.16" size="1.27" layer="95" xref="yes"/>
+<wire x1="88.9" y1="10.16" x2="93.98" y2="10.16" width="0.1524" layer="91"/>
+<label x="93.98" y="10.16" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 </nets>
