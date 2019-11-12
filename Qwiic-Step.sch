@@ -25801,6 +25801,8 @@ SparkFun BigTime Watch Kit&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;
 <part name="J6" library="SparkFun-Connectors" deviceset="CONN_04" device="SCREW"/>
 <part name="SUPPLY5" library="SparkFun-PowerSymbols" deviceset="3.3V" device=""/>
 <part name="J8" library="SparkFun-Connectors" deviceset="CONN_01" device="PTH_NO_SILK_YES_STOP"/>
+<part name="J10" library="SparkFun-Connectors" deviceset="CONN_02" device="-JST-2MM-SMT"/>
+<part name="J11" library="SparkFun-Connectors" deviceset="CONN_02" device="-JST-2MM-SMT"/>
 </parts>
 <sheets>
 <sheet>
@@ -25833,6 +25835,7 @@ and heat sinking/fan to reach this.</text>
 <text x="128.143" y="77.851" size="1.778" layer="97" rot="R90">Power</text>
 <text x="73.66" y="12.7" size="1.27" layer="91">TXO</text>
 <text x="73.66" y="10.16" size="1.27" layer="91">RXI</text>
+<text x="256.54" y="7.62" size="1.27" layer="91">Add current sense</text>
 </plain>
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0" smashed="yes"/>
@@ -26157,6 +26160,14 @@ and heat sinking/fan to reach this.</text>
 <instance part="J8" gate="G$1" x="137.16" y="25.4" smashed="yes" rot="R180">
 <attribute name="VALUE" x="139.7" y="30.226" size="1.778" layer="96" font="vector" rot="R180"/>
 <attribute name="NAME" x="139.7" y="22.352" size="1.778" layer="95" font="vector" rot="R180"/>
+</instance>
+<instance part="J10" gate="G$1" x="259.08" y="35.56" smashed="yes">
+<attribute name="VALUE" x="256.54" y="30.734" size="1.778" layer="96" font="vector"/>
+<attribute name="NAME" x="256.54" y="41.148" size="1.778" layer="95" font="vector"/>
+</instance>
+<instance part="J11" gate="G$1" x="259.08" y="22.86" smashed="yes">
+<attribute name="VALUE" x="256.54" y="18.034" size="1.778" layer="96" font="vector"/>
+<attribute name="NAME" x="256.54" y="28.448" size="1.778" layer="95" font="vector"/>
 </instance>
 </instances>
 <busses>
