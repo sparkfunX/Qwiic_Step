@@ -1,5 +1,6 @@
 // Code that outputs PWM signal on pin 3 of ATMega328
 // Timer2 output B
+// Amplitude of PWM signal is 5V
 
 void setup() {
   pinMode(3, OUTPUT);
