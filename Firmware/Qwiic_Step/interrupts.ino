@@ -4,9 +4,6 @@
 
 void receiveEvent(int numberOfBytesReceived)
 {
-  //FOR DEBUGGIN
-  Serial.println("Hello, recieved event!");
-
 //  Wire.flush(); // clear outgoing buffer (may have been loaded with extra bytes last time that requestEvent was called)
   
   registerNumber = Wire.read();  //Get the memory map offset from the user
@@ -25,9 +22,6 @@ void receiveEvent(int numberOfBytesReceived)
       *(registerPointer + registerNumber + x) |= temp & *(protectionPointer + registerNumber + x);  //Or in the user's request (clensed against protection bits)
     }
   }
-
-  Serial.print("Set register number to: ");
-  Serial.println(registerNumber);
 }
 
 //Respond to read commands

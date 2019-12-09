@@ -2,6 +2,7 @@
 #include <EEPROM.h>
 // #include "nvm.h"    //DEBUG: don't know what this is yet...
 #include "registers.h"
+#include <AccelStepper.h>
 
 #include <avr/sleep.h> //Needed for sleep_mode
 
@@ -33,7 +34,7 @@ volatile memoryMap registerMap{
     0x00000000,          //currentPos
     0x00000000,          //moveTo
     0x00000000,          //maxSpeed
-    0x12345678,          //acceleration
+    0x00000000,          //acceleration
     0x00000000,          //setSpeed
     0x00,                //enableSetSpeedNVM
     0x0000,              //holdCurrent
@@ -73,6 +74,9 @@ volatile uint8_t registerNumber;  //Gets set when user writes an address. We the
 //DEBUG: not sure how I'm using this yet...
 //volatile boolean updateFlag = true; //Goes true when we recieve new bytes from the users. Causes things to update in main loop.
 
+//Define a stepper and its pins
+AccelStepper stepper(AccelStepper::DRIVER, stp, dir); //Stepper driver, 2 pins required
+
 void setup(void)
 {
     //Configure ATMega pins
@@ -109,11 +113,19 @@ void setup(void)
 
     //Determine the I2C address to be using and listen on I2C bus
     startI2C(&registerMap);
+
+  //DEBUGING: for testing... can we make the motor turn at all? A: no
+  stepper.setMaxSpeed(1000);
+  stepper.setSpeed(1000);
+  stepper.setAcceleration(1000);
+  stepper.moveTo(400);
 }
 
 void loop(void){
- 
-}
+//  stepper.moveTo(registerMap.moveTo);
+  Serial.println(registerMap.moveTo);
+  stepper.run();
+} 
 
 void startI2C(memoryMap *map)
 {
