@@ -12,9 +12,11 @@ typedef union {
 typedef union {
     struct
     {
-        bool limitSwitch : 1;
+        bool ms1 : 1;
+        bool ms2 : 1;
+        bool ms3 : 1;
         bool disableStepper : 1;
-        bool microStep : 3;
+        bool limitSwitch : 1;
         bool : 3;
     };
     uint8_t byteWrapped;
@@ -47,12 +49,15 @@ typedef struct memoryMap
     signed long moveTo;
 
     float maxSpeed;
-    float acceleration;
+    signed long acceleration;
     float setSpeed;
 
     uint8_t enableSetSpeedNVM; //0x47 = POR value can be written and stored in NVM
     uint16_t holdCurrent;      //Max 2000mA
     uint16_t runCurrent;       //Max 2000mA
 
+    unsigned long tempEmpty0;
+    unsigned long tempEmpty1;    
+
     uint8_t i2cAddress;
-}
+};
