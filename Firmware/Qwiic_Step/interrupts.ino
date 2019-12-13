@@ -7,6 +7,8 @@ void receiveEvent(int numberOfBytesReceived)
 //  Wire.flush(); // clear outgoing buffer (may have been loaded with extra bytes last time that requestEvent was called)
   
   registerNumber = Wire.read();  //Get the memory map offset from the user
+  
+  updateFlag = true;
 
   //Begin recording the following incoming bytes to the temp memory map
   //starting at the registerNumber (the first byte received)
@@ -26,9 +28,10 @@ void receiveEvent(int numberOfBytesReceived)
 
 //Respond to read commands
 //When the Qwiic Step gets a request for data from the user, this function is called as an interrupt
-//The interrupt will respond with bytes starting from the last byte the user sent to us
+//The interrupt will respond with bytes starting from the last byte the user sent to us to the end of memory map
+//Can only write 32 bytes at a time. Conditional takes care of cases where we write too many byte (memoryMap > 32 bytes)
 void requestEvent()
 {
-  uint8_t len = (sizeof(memoryMap) - registerNumber);
+  uint8_t len = (sizeof(memoryMap) - registerNumber);  
   Wire.write((uint8_t*)(registerPointer + registerNumber), (len > TWI_BUFFER_LENGTH) ? TWI_BUFFER_LENGTH : len );
 }

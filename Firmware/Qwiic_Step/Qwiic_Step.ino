@@ -11,58 +11,83 @@
 #define DEFAULT_I2C_ADDRESS 0x52
 
 //Hardware connections
-const uint8_t stp = A3;
-const uint8_t dir = 6;
-const uint8_t MS1 = 9;
-const uint8_t MS2 = 8;
-const uint8_t MS3 = 7;
-const uint8_t addressPin = 11;
-const uint8_t curr_ref_pwm = 5;
-const uint8_t curr_sense = A6;   //DEBUG: right way to reference these pins?
-const uint8_t a49885_reset = A7; //DEBUG: might not work... is pin only ADC input?
-const uint8_t interrupt0 = 2;
-const uint8_t interrupt1 = 3;
-const uint8_t externalInterrupt = A1;
+//const uint8_t stp = A3;
+//const uint8_t dir = 6;
+//const uint8_t MS1 = 9;
+//const uint8_t MS2 = 8;
+//const uint8_t MS3 = 7;
+const uint8_t stp = 2;
+const uint8_t dir = 3;
+const uint8_t MS1 = 4;
+const uint8_t MS2 = 5;
+const uint8_t MS3 = 6;
+//const uint8_t addressPin = 11;
+//const uint8_t curr_ref_pwm = 5;
+//const uint8_t curr_sense = A6;   //DEBUG: right way to reference these pins?
+//const uint8_t a49885_reset = A7; //DEBUG: might not work... is pin only ADC input?
+//const uint8_t interrupt0 = 2;
+//const uint8_t interrupt1 = 3;
+//const uint8_t externalInterrupt = A1;
 
-volatile memoryMap registerMap{
-    DEVICE_ID,           //id
-    FIRMWARE_VERSION,    //firmware
-    0x00,                //interruptEnable
-    {1, 1, 1},           //motorStatus {isRunning, isAccelerating, isDecelerating}
-    {1, 1, 1, 1, 1},     //motorConfig {ms1, ms2, ms3, disableStepper, limitSwitch}
-    {1, 1, 1, 1},        //motorControl {stop, runTo, runContinuous, sleep}
-    0x00000000,          //currentPos
-    0x00000000,          //moveTo
-    0x00000000,          //maxSpeed
-    0x00000000,          //acceleration
-    0x00000000,          //setSpeed
-    0x00,                //enableSetSpeedNVM
-    0x0000,              //holdCurrent
-    0x0000,              //runCurrent
-    0x00000000,          //tempEmpty0
-    0x00000000,          //tempEmpty1
-    DEFAULT_I2C_ADDRESS, //i2cAddress
+volatile memoryMap registerMap {
+  DEVICE_ID,           //id
+  FIRMWARE_VERSION,    //firmware
+  0x00,                //interruptEnable
+  {1, 1, 1},           //motorStatus {isDecelerating, isAccelerating, isRunning}
+  {1, 1, 1, 1, 1},     //motorConfig {limitSwitch, disableStepper, ms3, ms2, ms1}
+  {1, 1, 1, 1},        //motorControl {sleep, runContinuous, runTo, stop}
+  0x00000000,          //currentPos
+  0x00000000,          //distanceToGo
+  0x00000000,          //move
+  0x00000000,          //moveTo
+  0x00000000,          //maxSpeed (float)
+  0x00000000,          //acceleration (float)
+  0x00000000,          //setSpeed (float)
+  0x00,                //enableSetSpeedNVM
+  0x0000,              //holdCurrent
+  0x0000,              //runCurrent
+  DEFAULT_I2C_ADDRESS, //i2cAddress
+};
+
+volatile memoryMap registerMapOld{
+  DEVICE_ID,           //id
+  FIRMWARE_VERSION,    //firmware
+  0x00,                //interruptEnable
+  {1, 1, 1},           //motorStatus {isDecelerating, isAccelerating, isRunning}
+  {1, 1, 1, 1, 1},     //motorConfig {limitSwitch, disableStepper, ms3, ms2, ms1}
+  {1, 1, 1, 1},        //motorControl {sleep, runContinuous, runTo, stop}
+  0x00000000,          //currentPos
+  0x00000000,          //distanceToGo
+  0x00000000,          //move
+  0x00000000,          //moveTo
+  0x00000000,          //maxSpeed (float)
+  0x00000000,          //acceleration (float)
+  0x00000000,          //setSpeed (float)
+  0x00,                //enableSetSpeedNVM
+  0x0000,              //holdCurrent
+  0x0000,              //runCurrent
+  DEFAULT_I2C_ADDRESS, //i2cAddress
 };
 
 //This defines which of the registers are read-only (0) vs read-write (1)
 memoryMap protectionMap = {
-    0x00,               //id
-    0x0000,             //firmware
-    0xFF,               //interruptEnable      
-    {1, 1, 1},          //motorStatus {isRunning, isAccelerating, isDecelerating}
-    {1, 1, 1, 1, 1},    //motorConfig {limitSwitch, disableStepper, microStep}
-    {1, 1, 1, 1},       //motorControl {stop, runTo, runContinuous, sleep}
-    0xFFFFFFFF,         //currentPos
-    0xFFFFFFFF,         //moveTo
-    0xFFFFFFFF,         //maxSpeed
-    0xFFFFFFFF,         //acceleration
-    0xFFFFFFFF,         //setSpeed
-    0xFF,               //enableSetSpeedNVM
-    0xFFFF,             //holdCurrent
-    0xFFFF,             //runCurrent
-    0x00000000,         //tempEmpty0
-    0x00000000,         //tempEmpty1
-    0xFF,               //i2cAddress
+  0x00,               //id
+  0x0000,             //firmware
+  0xFF,               //interruptEnable
+  {1, 1, 1},          //motorStatus {isRunning, isAccelerating, isDecelerating}
+  {1, 1, 1, 1, 1},    //motorConfig {limitSwitch, disableStepper, microStep}
+  {1, 1, 1, 1},       //motorControl {stop, runTo, runContinuous, sleep}
+  0xFFFFFFFF,         //currentPos
+  0x00000000,         //distanceToGo
+  0xFFFFFFFF,         //move
+  0xFFFFFFFF,         //moveTo
+  0xFFFFFFFF,         //maxSpeed (float)
+  0xFFFFFFFF,         //acceleration (float)
+  0xFFFFFFFF,         //setSpeed (float)
+  0xFF,               //enableSetSpeedNVM
+  0xFFFF,             //holdCurrent
+  0xFFFF,             //runCurrent
+  0xFF,               //i2cAddress
 };
 
 //Cast 32bit address of the object registerMap with uint8_t so we can increment the pointer
@@ -71,66 +96,70 @@ uint8_t *protectionPointer = (uint8_t *)&protectionMap;
 
 volatile uint8_t registerNumber;  //Gets set when user writes an address. We then serve the spot the user requested.
 
-//DEBUG: not sure how I'm using this yet...
-//volatile boolean updateFlag = true; //Goes true when we recieve new bytes from the users. Causes things to update in main loop.
+volatile boolean updateFlag = false; //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
 
 //Define a stepper and its pins
 AccelStepper stepper(AccelStepper::DRIVER, stp, dir); //Stepper driver, 2 pins required
 
 void setup(void)
 {
-    //Configure ATMega pins
-    //Motor config pins are all outputs
-    pinMode(stp, OUTPUT);
-    pinMode(dir, OUTPUT);
-    pinMode(MS1, OUTPUT);
-    pinMode(MS2, OUTPUT);
-    pinMode(MS3, OUTPUT);
+  //Configure ATMega pins
+  //Motor config pins are all outputs
+  //    pinMode(stp, OUTPUT);
+  //    pinMode(dir, OUTPUT);
+  pinMode(MS1, OUTPUT);
+  pinMode(MS2, OUTPUT);
+  pinMode(MS3, OUTPUT);
 
-    pinMode(addressPin, INPUT_PULLUP);
-    pinMode(curr_ref_pwm, OUTPUT);
-    pinMode(curr_sense, INPUT);
-    pinMode(a49885_reset, OUTPUT);
+  //    pinMode(addressPin, INPUT_PULLUP);
+  //    pinMode(curr_ref_pwm, OUTPUT);
+  //    pinMode(curr_sense, INPUT);
+  //    pinMode(a49885_reset, OUTPUT);
 
-    //interrupt pins... all inputs?
-    pinMode(interrupt0, INPUT_PULLUP);
-    pinMode(interrupt1, INPUT_PULLUP);
-    pinMode(externalInterrupt, INPUT_PULLUP);
+  //interrupt pins... all inputs?
+  //    pinMode(interrupt0, INPUT_PULLUP);
+  //    pinMode(interrupt1, INPUT_PULLUP);
+  //    pinMode(externalInterrupt, INPUT_PULLUP);
 
-    //DEBUG: do I need to disable ADC & Brown-out detect?!
+  //DEBUG: do I need to disable ADC & Brown-out detect?!
 
-    //Power down various bits of hardware to lower power usage
-    set_sleep_mode(SLEEP_MODE_IDLE);
-    sleep_enable();
+  //Power down various bits of hardware to lower power usage
+  set_sleep_mode(SLEEP_MODE_IDLE);
+  sleep_enable();
 
-    //Print info to Serial Monitor
-    Serial.begin(115200);
-    Serial.println("Qwiic Button");
-    Serial.print("Address: 0x");
-    Serial.println(registerMap.i2cAddress, HEX);
-    Serial.print("Device ID: 0x");
-    Serial.println(registerMap.id, HEX);
+  //Print info to Serial Monitor
+  Serial.begin(115200);
+  Serial.println("Qwiic Button");
+  Serial.print("Address: 0x");
+  Serial.println(registerMap.i2cAddress, HEX);
+  Serial.print("Device ID: 0x");
+  Serial.println(registerMap.id, HEX);
 
-    //Determine the I2C address to be using and listen on I2C bus
-    startI2C(&registerMap);
+  //Determine the I2C address to be using and listen on I2C bus
+  startI2C(&registerMap);
 
-  //DEBUGING: for testing... can we make the motor turn at all? A: no
-  stepper.setMaxSpeed(1000);
-  stepper.setSpeed(1000);
-  stepper.setAcceleration(1000);
-  stepper.moveTo(400);
+  //  //DEBUGING: for testing... can we make the motor turn at all?
+  //  stepper.setMaxSpeed(1000);
+  //  stepper.setSpeed(1000);
+  //  stepper.setAcceleration(1000);
+
+  printState();
 }
 
-void loop(void){
-//  stepper.moveTo(registerMap.moveTo);
-  Serial.println(registerMap.moveTo);
+void loop(void) {
+  if (updateFlag == true) {
+    updateStepper();
+    printState();
+    updateFlag = false;
+  }
+
   stepper.run();
-} 
+}
 
 void startI2C(memoryMap *map)
 {
   uint8_t address;
-  
+
   //DEBUG: need to handle address jumper here. What is it supposed to do?
 
   //check if the address stored in memoryMap is valid
@@ -149,4 +178,133 @@ void startI2C(memoryMap *map)
   //Connect receive and request events to the interrupts
   Wire.onReceive(receiveEvent);
   Wire.onRequest(requestEvent);
+}
+
+void updateStepper() {
+  //  if (registerMapOld.maxSpeed != registerMap.maxSpeed)
+  //    stepper.setMaxSpeed(registerMap.maxSpeed);
+
+
+//  Serial.print("Max speed: ");
+//  Serial.println(convertToFloat(registerMap.maxSpeed));
+  stepper.setSpeed(convertToFloat(registerMap.maxSpeed));
+  stepper.setSpeed(convertToFloat(registerMap.setSpeed));
+  stepper.setAcceleration(convertToFloat(registerMap.acceleration));
+  stepper.move(registerMap.moveTo);
+
+  //  registerMapOld = registerMap;
+  //  registerMapOld.maxSpeed = registerMap.maxSpeed;
+}
+
+void printState() {
+  Serial.println();
+
+  Serial.print("Register map id: 0x");
+  Serial.println(*(registerPointer + 0), HEX);
+
+  Serial.print("Firmware version: 0x");
+  if (*(registerPointer + 2) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 2), HEX);
+  if (*(registerPointer + 1) < 0x10) Serial.print("0");
+  Serial.println(*(registerPointer + 1), HEX);
+
+  Serial.print("Interrupt enable: 0x");
+  Serial.println(*(registerPointer + 3), HEX);
+
+  Serial.print("Motor status: 0x");
+  Serial.println(*(registerPointer + 4), HEX);
+
+  Serial.print("Device config: 0x");
+  Serial.println(*(registerPointer + 5), HEX);
+
+  Serial.print("Device control: 0x");
+  Serial.println(*(registerPointer + 6), HEX);
+
+  Serial.print("Current position: 0x");
+  if (*(registerPointer + 0xA) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0xA), HEX);
+  if (*(registerPointer + 0x9) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x9), HEX);
+  if (*(registerPointer + 0x8) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x8), HEX);
+  if (*(registerPointer + 0x7) < 0x10) Serial.print("0");
+  Serial.println(*(registerPointer + 0x7), HEX);
+
+  Serial.print("Distance to go: 0x");
+  if (*(registerPointer + 0xE) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0xE), HEX);
+  if (*(registerPointer + 0xD) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0xD), HEX);
+  if (*(registerPointer + 0xC) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0xC), HEX);
+  if (*(registerPointer + 0xB) < 0x10) Serial.print("0");
+  Serial.println(*(registerPointer + 0xB), HEX);
+
+  Serial.print("Move: 0x");
+  if (*(registerPointer + 0x12) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x12), HEX);
+  if (*(registerPointer + 0x11) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x11), HEX);
+  if (*(registerPointer + 0x10) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x10), HEX);
+  if (*(registerPointer + 0xF) < 0x10) Serial.print("0");
+  Serial.println(*(registerPointer + 0xF), HEX);
+
+  Serial.print("Move to: 0x");
+  if (*(registerPointer + 0x16) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x16), HEX);
+  if (*(registerPointer + 0x15) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x15), HEX);
+  if (*(registerPointer + 0x14) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x14), HEX);
+  if (*(registerPointer + 0x13) < 0x10) Serial.print("0");
+  Serial.println(*(registerPointer + 0x13), HEX);
+
+  Serial.print("Max Speed: 0x");
+  if (*(registerPointer + 0x1A) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x1A), HEX);
+  if (*(registerPointer + 0x19) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x19), HEX);
+  if (*(registerPointer + 0x18) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x18), HEX);
+  if (*(registerPointer + 0x17) < 0x10) Serial.print("0");
+  Serial.println(*(registerPointer + 0x17), HEX);
+
+  Serial.print("Acceleration: 0x");
+  if (*(registerPointer + 0x1E) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x1E), HEX);
+  if (*(registerPointer + 0x1D) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x1D), HEX);
+  if (*(registerPointer + 0x1C) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x1C), HEX);
+  if (*(registerPointer + 0x1B) < 0x10) Serial.print("0");
+  Serial.println(*(registerPointer + 0x1B), HEX);
+
+  Serial.print("Set speed: 0x");
+  if (*(registerPointer + 0x22) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x22), HEX);
+  if (*(registerPointer + 0x21) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x21), HEX);
+  if (*(registerPointer + 0x20) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x20), HEX);
+  if (*(registerPointer + 0x1F) < 0x10) Serial.print("0");
+  Serial.println(*(registerPointer + 0x1F), HEX);
+
+  Serial.print("Enable set speed: 0x");
+  Serial.println(*(registerPointer + 0x23), HEX);
+
+  Serial.print("Hold current: 0x");
+  if (*(registerPointer + 0x25) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x25), HEX);
+  if (*(registerPointer + 0x24) < 0x10) Serial.print("0");
+  Serial.println(*(registerPointer + 0x24), HEX);
+
+  Serial.print("Run current: 0x");
+  if (*(registerPointer + 0x27) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x27), HEX);
+  if (*(registerPointer + 0x26) < 0x10) Serial.print("0");
+  Serial.println(*(registerPointer + 0x26), HEX);
+
+  Serial.print("I2C address: 0x");
+  Serial.println(*(registerPointer + 0x28), HEX);
 }
