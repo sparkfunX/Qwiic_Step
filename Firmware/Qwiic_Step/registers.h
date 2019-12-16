@@ -16,10 +16,22 @@ float convertToFloat(uint32_t myVal) {
 typedef union {
   struct
   {
+    bool requestedPosReached : 1;
+    bool limSwitchPressed : 1;
+    bool : 6;
+  };
+  uint8_t byteWrapped;
+} interruptEnableBitField;
+
+typedef union {
+  struct
+  {
     bool isRunning : 1;
     bool isAccelerating : 1;
     bool isDecelerating : 1;
-    bool : 5;
+    bool isLimited : 1;
+    bool isReached : 1;
+    bool : 3;
   };
   uint8_t byteWrapped;
 } statusRegisterBitField;
@@ -30,8 +42,8 @@ typedef union {
     bool ms1 : 1;
     bool ms2 : 1;
     bool ms3 : 1;
-    bool disableStepper : 1;
-    bool limitSwitch : 1;
+    bool stopOnPositionReached : 1;
+    bool stopOnLimitSwitchPress : 1;
     bool : 3;
   };
   uint8_t byteWrapped;
@@ -53,7 +65,7 @@ typedef struct memoryMap
 {
   uint8_t id;
   uint16_t firmware;
-  uint8_t interruptEnable;
+  interruptEnableBitField interruptEnable;
   
   statusRegisterBitField motorStatus;
   deviceConfigBitField motorConfig;

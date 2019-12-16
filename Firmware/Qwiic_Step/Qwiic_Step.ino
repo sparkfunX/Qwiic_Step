@@ -18,9 +18,9 @@
 //const uint8_t MS3 = 7;
 const uint8_t stp = 2;
 const uint8_t dir = 3;
-const uint8_t MS1 = 4;
-const uint8_t MS2 = 5;
-const uint8_t MS3 = 6;
+const uint8_t Pin_MS1 = 4;
+const uint8_t Pin_MS2 = 5;
+const uint8_t Pin_MS3 = 6;
 //const uint8_t addressPin = 11;
 //const uint8_t curr_ref_pwm = 5;
 //const uint8_t curr_sense = A6;   //DEBUG: right way to reference these pins?
@@ -32,30 +32,10 @@ const uint8_t MS3 = 6;
 volatile memoryMap registerMap {
   DEVICE_ID,           //id
   FIRMWARE_VERSION,    //firmware
-  0x00,                //interruptEnable
-  {1, 1, 1},           //motorStatus {isDecelerating, isAccelerating, isRunning}
-  {1, 1, 1, 1, 1},     //motorConfig {limitSwitch, disableStepper, ms3, ms2, ms1}
-  {1, 1, 1, 1},        //motorControl {sleep, runContinuous, runTo, stop}
-  0x00000000,          //currentPos
-  0x00000000,          //distanceToGo
-  0x00000000,          //move
-  0x00000000,          //moveTo
-  0x00000000,          //maxSpeed (float)
-  0x00000000,          //acceleration (float)
-  0x00000000,          //setSpeed (float)
-  0x00,                //enableSetSpeedNVM
-  0x0000,              //holdCurrent
-  0x0000,              //runCurrent
-  DEFAULT_I2C_ADDRESS, //i2cAddress
-};
-
-volatile memoryMap registerMapOld{
-  DEVICE_ID,           //id
-  FIRMWARE_VERSION,    //firmware
-  0x00,                //interruptEnable
-  {1, 1, 1},           //motorStatus {isDecelerating, isAccelerating, isRunning}
-  {1, 1, 1, 1, 1},     //motorConfig {limitSwitch, disableStepper, ms3, ms2, ms1}
-  {1, 1, 1, 1},        //motorControl {sleep, runContinuous, runTo, stop}
+  {0, 0},              //interruptEnable {requestedPosReached, limSwitchPressed}
+  {0, 0, 0, 0, 0},     //motorStatus {isRunning, isAccelerating, isDecelerating, isLimited, isReached}
+  {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableStepper, limitSwitch}
+  {1, 1, 1, 1},        //motorControl {stop, runTo, runContinuous, sleep}
   0x00000000,          //currentPos
   0x00000000,          //distanceToGo
   0x00000000,          //move
@@ -73,9 +53,9 @@ volatile memoryMap registerMapOld{
 memoryMap protectionMap = {
   0x00,               //id
   0x0000,             //firmware
-  0xFF,               //interruptEnable
-  {1, 1, 1},          //motorStatus {isRunning, isAccelerating, isDecelerating}
-  {1, 1, 1, 1, 1},    //motorConfig {limitSwitch, disableStepper, microStep}
+  {1, 1},             //interruptEnable {requestedPosReached, limSwitchPressed}
+  {1, 1, 1, 1, 1},    //motorStatus {isRunning, isAccelerating, isDecelerating, isLimited, isReached}
+  {1, 1, 1, 1, 1},    //motorConfig {ms1, ms2, ms3, disableStepper, limitSwitch}
   {1, 1, 1, 1},       //motorControl {stop, runTo, runContinuous, sleep}
   0xFFFFFFFF,         //currentPos
   0x00000000,         //distanceToGo
@@ -107,10 +87,13 @@ void setup(void)
   //Motor config pins are all outputs
   //    pinMode(stp, OUTPUT);
   //    pinMode(dir, OUTPUT);
-  pinMode(MS1, OUTPUT);
-  pinMode(MS2, OUTPUT);
-  pinMode(MS3, OUTPUT);
-
+  pinMode(Pin_MS1, OUTPUT);
+  pinMode(Pin_MS2, OUTPUT);
+  pinMode(Pin_MS3, OUTPUT);
+  digitalWrite(Pin_MS1, LOW);
+  digitalWrite(Pin_MS2, LOW);
+  digitalWrite(Pin_MS3, LOW);
+  
   //    pinMode(addressPin, INPUT_PULLUP);
   //    pinMode(curr_ref_pwm, OUTPUT);
   //    pinMode(curr_sense, INPUT);
@@ -137,12 +120,6 @@ void setup(void)
 
   //Determine the I2C address to be using and listen on I2C bus
   startI2C(&registerMap);
-
-  //  //DEBUGING: for testing... can we make the motor turn at all?
-  //  stepper.setMaxSpeed(1000);
-  //  stepper.setSpeed(1000);
-  //  stepper.setAcceleration(1000);
-
   printState();
 }
 
@@ -150,6 +127,7 @@ void loop(void) {
   if (updateFlag == true) {
     updateStepper();
     printState();
+    //clear updateFlag
     updateFlag = false;
   }
 
@@ -180,22 +158,20 @@ void startI2C(memoryMap *map)
   Wire.onRequest(requestEvent);
 }
 
-void updateStepper() {
-  //  if (registerMapOld.maxSpeed != registerMap.maxSpeed)
-  //    stepper.setMaxSpeed(registerMap.maxSpeed);
-
-
-//  Serial.print("Max speed: ");
-//  Serial.println(convertToFloat(registerMap.maxSpeed));
-  stepper.setSpeed(convertToFloat(registerMap.maxSpeed));
-  stepper.setSpeed(convertToFloat(registerMap.setSpeed));
+void updateStepper(){
+  //call accelstepper functions with the values in registerMap
+  stepper.setCurrentPosition(registerMap.currentPos);
+  stepper.move(registerMap.move);
+  stepper.moveTo(registerMap.moveTo);
+  stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
   stepper.setAcceleration(convertToFloat(registerMap.acceleration));
-  stepper.move(registerMap.moveTo);
+  stepper.setSpeed(convertToFloat(registerMap.setSpeed));
 
-  //  registerMapOld = registerMap;
-  //  registerMapOld.maxSpeed = registerMap.maxSpeed;
+  //update the step mode by flipping pins MS1, MS2, MS3
+  digitalWrite(Pin_MS1, registerMap.motorConfig.ms1);
+  digitalWrite(Pin_MS2, registerMap.motorConfig.ms2);
+  digitalWrite(Pin_MS3, registerMap.motorConfig.ms3);
 }
-
 void printState() {
   Serial.println();
 
