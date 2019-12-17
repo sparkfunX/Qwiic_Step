@@ -16,8 +16,8 @@ float convertToFloat(uint32_t myVal) {
 typedef union {
   struct
   {
-    bool requestedPosReached : 1;
-    bool limSwitchPressed : 1;
+    bool requestedPosReachedEnable : 1;
+    bool limSwitchPressedEnable : 1;
     bool : 6;
   };
   uint8_t byteWrapped;
@@ -29,9 +29,10 @@ typedef union {
     bool isRunning : 1;
     bool isAccelerating : 1;
     bool isDecelerating : 1;
-    bool isLimited : 1;
     bool isReached : 1;
-    bool : 3;
+    bool isLimited : 1;
+    bool eStopped : 1;
+    bool : 2;
   };
   uint8_t byteWrapped;
 } statusRegisterBitField;
@@ -42,7 +43,7 @@ typedef union {
     bool ms1 : 1;
     bool ms2 : 1;
     bool ms3 : 1;
-    bool stopOnPositionReached : 1;
+    bool powerDownPositionReached : 1;
     bool stopOnLimitSwitchPress : 1;
     bool : 3;
   };

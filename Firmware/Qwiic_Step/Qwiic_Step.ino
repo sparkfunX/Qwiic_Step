@@ -9,32 +9,61 @@
 #define DEVICE_ID 0x60
 #define FIRMWARE_VERSION 0x0100
 #define DEFAULT_I2C_ADDRESS 0x52
+#define TEST_SETUP 1
 
 //Hardware connections
-//const uint8_t stp = A3;
-//const uint8_t dir = 6;
-//const uint8_t MS1 = 9;
-//const uint8_t MS2 = 8;
-//const uint8_t MS3 = 7;
+//test set-up pins
+#if defined(TEST_SETUP)
 const uint8_t stp = 2;
 const uint8_t dir = 3;
-const uint8_t Pin_MS1 = 4;
-const uint8_t Pin_MS2 = 5;
-const uint8_t Pin_MS3 = 6;
-//const uint8_t addressPin = 11;
-//const uint8_t curr_ref_pwm = 5;
-//const uint8_t curr_sense = A6;   //DEBUG: right way to reference these pins?
-//const uint8_t a49885_reset = A7; //DEBUG: might not work... is pin only ADC input?
-//const uint8_t interrupt0 = 2;
-//const uint8_t interrupt1 = 3;
-//const uint8_t externalInterrupt = A1;
+const uint8_t pin_MS1 = 4;
+const uint8_t pin_MS2 = 5;
+const uint8_t pin_MS3 = 6;
+const uint8_t pin_interrupt0 = 7;
+const uint8_t pin_interrupt1 = 8;
+const uint8_t pin_externalInterrupt = A1;
+#elif
+const uint8_t stp = A3;
+const uint8_t dir = 6;
+const uint8_t pin_MS1 = 9;
+const uint8_t pin_MS2 = 8;
+const uint8_t pin_MS3 = 7;
+const uint8_t addressPin = 11;
+const uint8_t curr_ref_pwm = 5;
+const uint8_t curr_sense = A6;   //DEBUG: right way to reference these pins?
+const uint8_t a49885_reset = A7; //DEBUG: might not work... is pin only ADC input?
+const uint8_t pin_interrupt0 = 2;   //Limit Switch
+const uint8_t pin_interrupt1 = 3;   //E-Stop
+const uint8_t pin_externalInterrupt = A1;
+#endif
 
 volatile memoryMap registerMap {
   DEVICE_ID,           //id
   FIRMWARE_VERSION,    //firmware
   {0, 0},              //interruptEnable {requestedPosReached, limSwitchPressed}
-  {0, 0, 0, 0, 0},     //motorStatus {isRunning, isAccelerating, isDecelerating, isLimited, isReached}
+  {0, 0, 0, 0, 0},     //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
   {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableStepper, limitSwitch}
+  {1, 1, 1, 1},        //motorControl {stop, runTo, runContinuous, sleep}
+  0x00000000,          //currentPos
+  0x00000000,          //distanceToGo
+  0x00000000,          //move
+  0x00000000,          //moveTo
+  0x00000000,          //maxSpeed (float)
+  0x00000000,          //acceleration (float)
+  0x00000000,          //setSpeed (float)
+  0x00,                //enableSetSpeedNVM
+  0x0000,              //holdCurrent
+  0x0000,              //runCurrent
+  DEFAULT_I2C_ADDRESS, //i2cAddress
+};
+
+//this memory map holds temporary "old" values so we don't call accelstepper functions an unnecessary amount of times
+volatile memoryMap registerMapOld {
+  DEVICE_ID,           //id
+  FIRMWARE_VERSION,    //firmware
+  {0, 0},              //interruptEnable {requestedPosReached, limSwitchPressed}
+  {0, 0, 0, 0, 0},     //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
+  {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, stopOnPositionReached, stopOnLimitSwitchPress}
   {1, 1, 1, 1},        //motorControl {stop, runTo, runContinuous, sleep}
   0x00000000,          //currentPos
   0x00000000,          //distanceToGo
@@ -54,7 +83,7 @@ memoryMap protectionMap = {
   0x00,               //id
   0x0000,             //firmware
   {1, 1},             //interruptEnable {requestedPosReached, limSwitchPressed}
-  {1, 1, 1, 1, 1},    //motorStatus {isRunning, isAccelerating, isDecelerating, isLimited, isReached}
+  {1, 1, 1, 1, 1},    //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
   {1, 1, 1, 1, 1},    //motorConfig {ms1, ms2, ms3, disableStepper, limitSwitch}
   {1, 1, 1, 1},       //motorControl {stop, runTo, runContinuous, sleep}
   0xFFFFFFFF,         //currentPos
@@ -78,6 +107,9 @@ volatile uint8_t registerNumber;  //Gets set when user writes an address. We the
 
 volatile boolean updateFlag = false; //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
 
+//temp variable to hold previous speed of motor to calculate its acceleration status
+float previousSpeed;
+
 //Define a stepper and its pins
 AccelStepper stepper(AccelStepper::DRIVER, stp, dir); //Stepper driver, 2 pins required
 
@@ -85,14 +117,13 @@ void setup(void)
 {
   //Configure ATMega pins
   //Motor config pins are all outputs
-  //    pinMode(stp, OUTPUT);
-  //    pinMode(dir, OUTPUT);
-  pinMode(Pin_MS1, OUTPUT);
-  pinMode(Pin_MS2, OUTPUT);
-  pinMode(Pin_MS3, OUTPUT);
-  digitalWrite(Pin_MS1, LOW);
-  digitalWrite(Pin_MS2, LOW);
-  digitalWrite(Pin_MS3, LOW);
+  pinMode(pin_MS1, OUTPUT);
+  pinMode(pin_MS2, OUTPUT);
+  pinMode(pin_MS3, OUTPUT);
+  //Default to full step mode
+  digitalWrite(pin_MS1, LOW);
+  digitalWrite(pin_MS2, LOW);
+  digitalWrite(pin_MS3, LOW);
   
   //    pinMode(addressPin, INPUT_PULLUP);
   //    pinMode(curr_ref_pwm, OUTPUT);
@@ -100,9 +131,9 @@ void setup(void)
   //    pinMode(a49885_reset, OUTPUT);
 
   //interrupt pins... all inputs?
-  //    pinMode(interrupt0, INPUT_PULLUP);
-  //    pinMode(interrupt1, INPUT_PULLUP);
-  //    pinMode(externalInterrupt, INPUT_PULLUP);
+  pinMode(pin_interrupt0, INPUT_PULLUP);
+  pinMode(pin_interrupt1, INPUT_PULLUP);
+  pinMode(pin_externalInterrupt, INPUT_PULLUP);
 
   //DEBUG: do I need to disable ADC & Brown-out detect?!
 
@@ -117,13 +148,38 @@ void setup(void)
   Serial.println(registerMap.i2cAddress, HEX);
   Serial.print("Device ID: 0x");
   Serial.println(registerMap.id, HEX);
+  
+  previousSpeed = stepper.speed();
 
+  //attach state-change of interrupt pins to corresponding ISRs
+  attachInterrupt(digitalPinToInterrupt(pin_interrupt0), limitSwitchTriggered, LOW); 
+  attachInterrupt(digitalPinToInterrupt(pin_interrupt1), eStopTriggered, LOW);
+  
   //Determine the I2C address to be using and listen on I2C bus
   startI2C(&registerMap);
   printState();
 }
 
 void loop(void) {
+  //update motor status
+//  updateMotorStatus();
+  
+  //update external interrupt pin output
+  //if an interrupt is triggered
+  if ((registerMap.interruptEnable.requestedPosReachedEnable && registerMap.motorStatus.isReached) ||
+      (registerMap.interruptEnable.limSwitchPressedEnable && registerMap.motorStatus.isLimited))
+      {
+        //pull pin low
+        pinMode(pin_externalInterrupt, OUTPUT);
+        digitalWrite(pin_externalInterrupt, LOW);
+      }
+      else
+      {
+        //go to high-impedance mode
+        pinMode(pin_externalInterrupt, INPUT_PULLUP);
+      }
+
+  //Update accelstepper functions
   if (updateFlag == true) {
     updateStepper();
     printState();
@@ -131,7 +187,8 @@ void loop(void) {
     updateFlag = false;
   }
 
-  stepper.run();
+  if (registerMap.motorStatus.eStopped == false)
+    stepper.run();
 }
 
 void startI2C(memoryMap *map)
@@ -158,19 +215,65 @@ void startI2C(memoryMap *map)
   Wire.onRequest(requestEvent);
 }
 
+void updateMotorStatus(){
+  float currentSpeed = stepper.speed();
+  
+  if (stepper.isRunning())
+    registerMap.motorStatus.isRunning = 1;
+  else{
+    registerMap.motorStatus.isRunning = 0;
+    registerMap.motorStatus.isAccelerating = 0;
+    registerMap.motorStatus.isDecelerating = 0;
+  }
+    
+  if (previousSpeed < currentSpeed){
+//    Serial.println("I'm acclerating!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    registerMap.motorStatus.isAccelerating = 1;
+    registerMap.motorStatus.isDecelerating = 0;
+  }
+  else if (previousSpeed > currentSpeed){
+//    Serial.println("I'm decelerating!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    registerMap.motorStatus.isAccelerating = 0;
+    registerMap.motorStatus.isDecelerating = 1;
+  }
+  else{
+//    Serial.println("I'M NOT MOVING AT ALLLLLLLL~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+    registerMap.motorStatus.isAccelerating = 0;
+    registerMap.motorStatus.isDecelerating = 0;
+  }
+  
+  //update previous speed
+  previousSpeed = currentSpeed;
+
+  //check if we have made it to our target position
+  if (stepper.targetPosition() == stepper.currentPosition())
+    registerMap.motorStatus.isReached = 1;
+  else
+    registerMap.motorStatus.isReached = 0;
+}
+
 void updateStepper(){
   //call accelstepper functions with the values in registerMap
   stepper.setCurrentPosition(registerMap.currentPos);
+  if (registerMapOld.maxSpeed != registerMap.maxSpeed){
+    stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
+    registerMapOld.maxSpeed = registerMap.maxSpeed;
+  }
+  if (registerMapOld.setSpeed != registerMap.setSpeed){
+    stepper.setSpeed(convertToFloat(registerMap.setSpeed));
+    registerMapOld.setSpeed = registerMap.setSpeed; 
+  }
+  if (registerMapOld.acceleration != registerMap.acceleration){
+    stepper.setAcceleration(convertToFloat(registerMap.acceleration));
+    registerMapOld.acceleration = registerMap.acceleration;
+  }
   stepper.move(registerMap.move);
   stepper.moveTo(registerMap.moveTo);
-  stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
-  stepper.setAcceleration(convertToFloat(registerMap.acceleration));
-  stepper.setSpeed(convertToFloat(registerMap.setSpeed));
 
   //update the step mode by flipping pins MS1, MS2, MS3
-  digitalWrite(Pin_MS1, registerMap.motorConfig.ms1);
-  digitalWrite(Pin_MS2, registerMap.motorConfig.ms2);
-  digitalWrite(Pin_MS3, registerMap.motorConfig.ms3);
+  digitalWrite(pin_MS1, registerMap.motorConfig.ms1);
+  digitalWrite(pin_MS2, registerMap.motorConfig.ms2);
+  digitalWrite(pin_MS3, registerMap.motorConfig.ms3);
 }
 void printState() {
   Serial.println();
