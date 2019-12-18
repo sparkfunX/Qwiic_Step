@@ -76,6 +76,7 @@ typedef struct memoryMap
   signed long distanceToGo;
 
   signed long move;
+  uint8_t enableMoveNVM;  //0x59 = POR value can be written and stored in NVM
   signed long moveTo;
 
   //the following three variables are actually floats
@@ -83,9 +84,9 @@ typedef struct memoryMap
   //please use the convertToFloat function when using 
   uint32_t maxSpeed;        
   uint32_t acceleration;
-  uint32_t setSpeed;
-
-  uint8_t enableSetSpeedNVM; //0x47 = POR value can be written and stored in NVM
+  uint32_t speed;
+  uint8_t enableSpeedNVM; //0x47 = POR value can be written and stored in NVM
+  
   uint16_t holdCurrent;      //Max 2000mA
   uint16_t runCurrent;       //Max 2000mA
 

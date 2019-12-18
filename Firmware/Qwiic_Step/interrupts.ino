@@ -1,6 +1,8 @@
 #define TWI_BUFFER_LENGTH BUFFER_LENGTH // this is because Arduino is dumb
 
+//Respond to write commands
 //When Qwiic button receives data bytes from Master this function is called as an interrupt
+//Adjusts memoryMap with incoming data bytes
 void receiveEvent(int numberOfBytesReceived)
 {
   registerNumber = Wire.read();  //Get the memory map offset from the user
@@ -30,31 +32,32 @@ void receiveEvent(int numberOfBytesReceived)
 void requestEvent()
 {
   //update status of isLimited, what is the state of the interrupt pin?
+  //will hopefully clear isLimited bit when limit switch is released
   registerMap.motorStatus.isLimited = !digitalRead(pin_interrupt0);   //take the inverse of the interrupt pin because it is pulled high
 
   //update motor status
   float currentSpeed = stepper.speed();
 
-  if (stepper.isRunning())
+  if (stepper.isRunning()){
     registerMap.motorStatus.isRunning = 1;
+    if (previousSpeed < currentSpeed) {
+      //    Serial.println("I'm acclerating!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+      registerMap.motorStatus.isAccelerating = 1;
+      registerMap.motorStatus.isDecelerating = 0;
+    }
+    else if (previousSpeed > currentSpeed) {
+      //    Serial.println("I'm decelerating!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+      registerMap.motorStatus.isAccelerating = 0;
+      registerMap.motorStatus.isDecelerating = 1;
+    }
+    else {
+      //    Serial.println("I'M NOT MOVING AT ALLLLLLLL~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+      registerMap.motorStatus.isAccelerating = 0;
+      registerMap.motorStatus.isDecelerating = 0;
+    }
+  }
   else {
     registerMap.motorStatus.isRunning = 0;
-    registerMap.motorStatus.isAccelerating = 0;
-    registerMap.motorStatus.isDecelerating = 0;
-  }
-
-  if (previousSpeed < currentSpeed) {
-    //    Serial.println("I'm acclerating!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    registerMap.motorStatus.isAccelerating = 1;
-    registerMap.motorStatus.isDecelerating = 0;
-  }
-  else if (previousSpeed > currentSpeed) {
-    //    Serial.println("I'm decelerating!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    registerMap.motorStatus.isAccelerating = 0;
-    registerMap.motorStatus.isDecelerating = 1;
-  }
-  else {
-    //    Serial.println("I'M NOT MOVING AT ALLLLLLLL~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     registerMap.motorStatus.isAccelerating = 0;
     registerMap.motorStatus.isDecelerating = 0;
   }
@@ -63,8 +66,11 @@ void requestEvent()
   previousSpeed = currentSpeed;
 
   //check if we have made it to our target position
-  if (stepper.targetPosition() == stepper.currentPosition())
+  if (stepper.targetPosition() == stepper.currentPosition()){
     registerMap.motorStatus.isReached = 1;
+    if (registerMap.motorConfig.powerDownPositionReached)
+      stepper.disableOutputs();
+  }
   else
     registerMap.motorStatus.isReached = 0;
 
@@ -79,6 +85,7 @@ void limitSwitchTriggered()
   //isLimited status depends on the state of the interrupt pin
   registerMap.motorStatus.isLimited = !digitalRead(pin_interrupt0);   //take the inverse of the interrupt pin because it is pulled high
 
+  //stop the motor is user has configured it to
   if (registerMap.motorConfig.stopOnLimitSwitchPress) {
     //stop running motor
     stepper.stop();
@@ -90,18 +97,22 @@ void eStopTriggered()
   //Stop the motor
   stepper.stop();
 
+  //update status bit
+  //user needs to manually clear this bit for operations to continue after an e-stop event
   registerMap.motorStatus.eStopped = true;
-  
+
+  //call accelstepper library functions and update memoryMap accordingly
   stepper.setSpeed(0);
-  registerMap.setSpeed = 0;
-  registerMapOld.setSpeed = 0;
+  registerMap.speed = 0;
+  registerMapOld.speed = 0;
   stepper.setMaxSpeed(0);
   registerMap.maxSpeed = 0;
-  registerMapOld.setSpeed = 0;
+  registerMapOld.maxSpeed = 0;
   stepper.setAcceleration(0);
   registerMap.acceleration = 0;
   registerMapOld.acceleration = 0;
 
+  //disable power if user has configured motor to do so
   if (registerMap.motorConfig.powerDownPositionReached)
     stepper.disableOutputs();
 }

@@ -1,6 +1,6 @@
 #include <Wire.h>
 #include <EEPROM.h>
-// #include "nvm.h"    //DEBUG: don't know what this is yet...
+#include "nvm.h"    //DEBUG: don't know what this is yet...
 #include "registers.h"
 #include <AccelStepper.h>
 
@@ -47,11 +47,12 @@ volatile memoryMap registerMap {
   0x00000000,          //currentPos
   0x00000000,          //distanceToGo
   0x00000000,          //move
+  0x00,                //enableMoveNVM
   0x00000000,          //moveTo
   0x00000000,          //maxSpeed (float)
   0x00000000,          //acceleration (float)
-  0x00000000,          //setSpeed (float)
-  0x00,                //enableSetSpeedNVM
+  0x00000000,          //speed (float)
+  0x00,                //enableSpeedNVM
   0x0000,              //holdCurrent
   0x0000,              //runCurrent
   DEFAULT_I2C_ADDRESS, //i2cAddress
@@ -68,11 +69,12 @@ volatile memoryMap registerMapOld {
   0x00000000,          //currentPos
   0x00000000,          //distanceToGo
   0x00000000,          //move
+  0x00,                //enableMoveNVM
   0x00000000,          //moveTo
   0x00000000,          //maxSpeed (float)
   0x00000000,          //acceleration (float)
-  0x00000000,          //setSpeed (float)
-  0x00,                //enableSetSpeedNVM
+  0x00000000,          //speed (float)
+  0x00,                //enableSpeedNVM
   0x0000,              //holdCurrent
   0x0000,              //runCurrent
   DEFAULT_I2C_ADDRESS, //i2cAddress
@@ -89,11 +91,12 @@ memoryMap protectionMap = {
   0xFFFFFFFF,         //currentPos
   0x00000000,         //distanceToGo
   0xFFFFFFFF,         //move
+  0xFF,               //enableMoveNVM
   0xFFFFFFFF,         //moveTo
   0xFFFFFFFF,         //maxSpeed (float)
   0xFFFFFFFF,         //acceleration (float)
-  0xFFFFFFFF,         //setSpeed (float)
-  0xFF,               //enableSetSpeedNVM
+  0xFFFFFFFF,         //speed (float)
+  0xFF,               //enableSpeedNVM
   0xFFFF,             //holdCurrent
   0xFFFF,             //runCurrent
   0xFF,               //i2cAddress
@@ -259,9 +262,9 @@ void updateStepper(){
     stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
     registerMapOld.maxSpeed = registerMap.maxSpeed;
   }
-  if (registerMapOld.setSpeed != registerMap.setSpeed){
-    stepper.setSpeed(convertToFloat(registerMap.setSpeed));
-    registerMapOld.setSpeed = registerMap.setSpeed; 
+  if (registerMapOld.speed != registerMap.speed){
+    stepper.setSpeed(convertToFloat(registerMap.speed));
+    registerMapOld.speed = registerMap.speed; 
   }
   if (registerMapOld.acceleration != registerMap.acceleration){
     stepper.setAcceleration(convertToFloat(registerMap.acceleration));
@@ -329,61 +332,64 @@ void printState() {
   if (*(registerPointer + 0xF) < 0x10) Serial.print("0");
   Serial.println(*(registerPointer + 0xF), HEX);
 
+  Serial.print("Enable move NVM: 0x");
+  Serial.print(*(registerPointer + 0x13), HEX);
+  
   Serial.print("Move to: 0x");
+  if (*(registerPointer + 0x17) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x17), HEX);
   if (*(registerPointer + 0x16) < 0x10) Serial.print("0");
   Serial.print(*(registerPointer + 0x16), HEX);
   if (*(registerPointer + 0x15) < 0x10) Serial.print("0");
   Serial.print(*(registerPointer + 0x15), HEX);
   if (*(registerPointer + 0x14) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x14), HEX);
-  if (*(registerPointer + 0x13) < 0x10) Serial.print("0");
-  Serial.println(*(registerPointer + 0x13), HEX);
+  Serial.println(*(registerPointer + 0x14), HEX);
 
   Serial.print("Max Speed: 0x");
+  if (*(registerPointer + 0x1B) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x1B), HEX);
   if (*(registerPointer + 0x1A) < 0x10) Serial.print("0");
   Serial.print(*(registerPointer + 0x1A), HEX);
   if (*(registerPointer + 0x19) < 0x10) Serial.print("0");
   Serial.print(*(registerPointer + 0x19), HEX);
   if (*(registerPointer + 0x18) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x18), HEX);
-  if (*(registerPointer + 0x17) < 0x10) Serial.print("0");
-  Serial.println(*(registerPointer + 0x17), HEX);
+  Serial.println(*(registerPointer + 0x18), HEX);
 
   Serial.print("Acceleration: 0x");
+  if (*(registerPointer + 0x1F) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x1F), HEX);
   if (*(registerPointer + 0x1E) < 0x10) Serial.print("0");
   Serial.print(*(registerPointer + 0x1E), HEX);
   if (*(registerPointer + 0x1D) < 0x10) Serial.print("0");
   Serial.print(*(registerPointer + 0x1D), HEX);
   if (*(registerPointer + 0x1C) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x1C), HEX);
-  if (*(registerPointer + 0x1B) < 0x10) Serial.print("0");
-  Serial.println(*(registerPointer + 0x1B), HEX);
+  Serial.println(*(registerPointer + 0x1C), HEX);
 
-  Serial.print("Set speed: 0x");
+  Serial.print("Speed: 0x");
+  if (*(registerPointer + 0x23) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x23), HEX);
   if (*(registerPointer + 0x22) < 0x10) Serial.print("0");
   Serial.print(*(registerPointer + 0x22), HEX);
   if (*(registerPointer + 0x21) < 0x10) Serial.print("0");
   Serial.print(*(registerPointer + 0x21), HEX);
   if (*(registerPointer + 0x20) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x20), HEX);
-  if (*(registerPointer + 0x1F) < 0x10) Serial.print("0");
-  Serial.println(*(registerPointer + 0x1F), HEX);
+  Serial.println(*(registerPointer + 0x20), HEX);
 
   Serial.print("Enable set speed: 0x");
-  Serial.println(*(registerPointer + 0x23), HEX);
-
-  Serial.print("Hold current: 0x");
-  if (*(registerPointer + 0x25) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x25), HEX);
-  if (*(registerPointer + 0x24) < 0x10) Serial.print("0");
   Serial.println(*(registerPointer + 0x24), HEX);
 
-  Serial.print("Run current: 0x");
-  if (*(registerPointer + 0x27) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x27), HEX);
+  Serial.print("Hold current: 0x");
   if (*(registerPointer + 0x26) < 0x10) Serial.print("0");
-  Serial.println(*(registerPointer + 0x26), HEX);
+  Serial.print(*(registerPointer + 0x26), HEX);
+  if (*(registerPointer + 0x25) < 0x10) Serial.print("0");
+  Serial.println(*(registerPointer + 0x25), HEX);
+
+  Serial.print("Run current: 0x");
+  if (*(registerPointer + 0x28) < 0x10) Serial.print("0");
+  Serial.print(*(registerPointer + 0x28), HEX);
+  if (*(registerPointer + 0x27) < 0x10) Serial.print("0");
+  Serial.println(*(registerPointer + 0x27), HEX);
 
   Serial.print("I2C address: 0x");
-  Serial.println(*(registerPointer + 0x28), HEX);
+  Serial.println(*(registerPointer + 0x29), HEX);
 }
