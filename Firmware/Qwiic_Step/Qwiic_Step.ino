@@ -14,13 +14,13 @@
 //Hardware connections
 //test set-up pins
 #if defined(TEST_SETUP)
-const uint8_t stp = 2;
-const uint8_t dir = 3;
+const uint8_t stp = 7;
+const uint8_t dir = 8;
 const uint8_t pin_MS1 = 4;
 const uint8_t pin_MS2 = 5;
 const uint8_t pin_MS3 = 6;
-const uint8_t pin_interrupt0 = 7;
-const uint8_t pin_interrupt1 = 8;
+const uint8_t pin_interrupt0 = 2;
+const uint8_t pin_interrupt1 = 3;
 const uint8_t pin_externalInterrupt = A1;
 #elif
 const uint8_t stp = A3;
@@ -42,7 +42,7 @@ volatile memoryMap registerMap {
   FIRMWARE_VERSION,    //firmware
   {0, 0},              //interruptEnable {requestedPosReached, limSwitchPressed}
   {0, 0, 0, 0, 0},     //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
-  {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableStepper, limitSwitch}
+  {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
   {1, 1, 1, 1},        //motorControl {stop, runTo, runContinuous, sleep}
   0x00000000,          //currentPos
   0x00000000,          //distanceToGo
@@ -64,7 +64,7 @@ volatile memoryMap registerMapOld {
   FIRMWARE_VERSION,    //firmware
   {0, 0},              //interruptEnable {requestedPosReached, limSwitchPressed}
   {0, 0, 0, 0, 0},     //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
-  {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, stopOnPositionReached, stopOnLimitSwitchPress}
+  {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
   {1, 1, 1, 1},        //motorControl {stop, runTo, runContinuous, sleep}
   0x00000000,          //currentPos
   0x00000000,          //distanceToGo
@@ -86,7 +86,7 @@ memoryMap protectionMap = {
   0x0000,             //firmware
   {1, 1},             //interruptEnable {requestedPosReached, limSwitchPressed}
   {1, 1, 1, 1, 1},    //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
-  {1, 1, 1, 1, 1},    //motorConfig {ms1, ms2, ms3, disableStepper, limitSwitch}
+  {1, 1, 1, 1, 1},    //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
   {1, 1, 1, 1},       //motorControl {stop, runTo, runContinuous, sleep}
   0xFFFFFFFF,         //currentPos
   0x00000000,         //distanceToGo
@@ -151,7 +151,10 @@ void setup(void)
   Serial.println(registerMap.i2cAddress, HEX);
   Serial.print("Device ID: 0x");
   Serial.println(registerMap.id, HEX);
+
+  readSystemSettings(); //Load all system settings from EEPROM
   
+  //temporary variable to calculate acceleration
   previousSpeed = stepper.speed();
 
   //attach state-change of interrupt pins to corresponding ISRs
@@ -186,12 +189,17 @@ void loop(void) {
   if (updateFlag == true) {
     updateStepper();
     printState();
+
+    //Record anything new to EEPROM
+    recordSystemSettings();
     //clear updateFlag
     updateFlag = false;
   }
 
   if (registerMap.motorStatus.eStopped == false)
+  {
     stepper.run();
+  }
 }
 
 void startI2C(memoryMap *map)
@@ -218,43 +226,6 @@ void startI2C(memoryMap *map)
   Wire.onRequest(requestEvent);
 }
 
-void updateMotorStatus(){
-  float currentSpeed = stepper.speed();
-  
-  if (stepper.isRunning())
-    registerMap.motorStatus.isRunning = 1;
-  else{
-    registerMap.motorStatus.isRunning = 0;
-    registerMap.motorStatus.isAccelerating = 0;
-    registerMap.motorStatus.isDecelerating = 0;
-  }
-    
-  if (previousSpeed < currentSpeed){
-//    Serial.println("I'm acclerating!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    registerMap.motorStatus.isAccelerating = 1;
-    registerMap.motorStatus.isDecelerating = 0;
-  }
-  else if (previousSpeed > currentSpeed){
-//    Serial.println("I'm decelerating!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    registerMap.motorStatus.isAccelerating = 0;
-    registerMap.motorStatus.isDecelerating = 1;
-  }
-  else{
-//    Serial.println("I'M NOT MOVING AT ALLLLLLLL~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-    registerMap.motorStatus.isAccelerating = 0;
-    registerMap.motorStatus.isDecelerating = 0;
-  }
-  
-  //update previous speed
-  previousSpeed = currentSpeed;
-
-  //check if we have made it to our target position
-  if (stepper.targetPosition() == stepper.currentPosition())
-    registerMap.motorStatus.isReached = 1;
-  else
-    registerMap.motorStatus.isReached = 0;
-}
-
 void updateStepper(){
   //call accelstepper functions with the values in registerMap
   stepper.setCurrentPosition(registerMap.currentPos);
@@ -278,6 +249,90 @@ void updateStepper(){
   digitalWrite(pin_MS2, registerMap.motorConfig.ms2);
   digitalWrite(pin_MS3, registerMap.motorConfig.ms3);
 }
+
+void recordSystemSettings()
+{
+  EEPROM.put(0x00, registerMap);
+}
+
+void readSystemSettings()
+{
+  //Read interrupt enable
+  EEPROM.get(LOCATION_INTERRUPTENABLE, registerMap.interruptEnable.byteWrapped);
+  if (registerMap.interruptEnable.byteWrapped == 0xFF){
+    //default to no interrupts enabled
+    registerMap.interruptEnable.byteWrapped = 0x00;
+    EEPROM.put(LOCATION_INTERRUPTENABLE, registerMap.interruptEnable.byteWrapped);
+  }
+
+  //Read device configuration
+  EEPROM.get(LOCATION_DEVICECONFIG, registerMap.motorConfig.byteWrapped);
+  if (registerMap.motorConfig.byteWrapped == 0xFF){
+    //default to stop on limit switch press
+    registerMap.motorConfig.byteWrapped = 0x10;
+    EEPROM.put(LOCATION_DEVICECONFIG, registerMap.motorConfig.byteWrapped);
+  }
+
+  //Read move if user has said to
+  EEPROM.get(LOCATION_MOVE_ENABLENVM, registerMap.enableMoveNVM);
+  if (registerMap.enableMoveNVM == 0x59){
+    EEPROM.get(LOCATION_MOVE, registerMap.move);
+    if (registerMap.move == 0xFFFFFFFF){
+      //default to move of 0
+      registerMap.move = 0x00000000;
+      EEPROM.put(LOCATION_MOVE, registerMap.move);
+    }
+  }
+
+  //Read max speed
+  EEPROM.get(LOCATION_MAXSPEED, registerMap.maxSpeed);
+  if (registerMap.maxSpeed == 0xFFFFFFFF){
+    //default to max speed of 0
+    registerMap.maxSpeed = 0x000000000;  
+    EEPROM.put(LOCATION_MAXSPEED, registerMap.maxSpeed);
+  }
+
+  //Read acceleration
+  EEPROM.get(LOCATION_ACCELERATION, registerMap.acceleration);
+  if (registerMap.acceleration == 0xFFFFFFFF){
+    //default acceleration to 0
+    registerMap.acceleration = 0x00000000;
+    EEPROM.put(LOCATION_ACCELERATION, registerMap.acceleration);
+  }
+
+  //Read speed if user has said to 
+  EEPROM.get(LOCATION_SPEED_ENABLENVM, registerMap.enableSpeedNVM);
+  if (registerMap.enableSpeedNVM == 0x47){
+    EEPROM.get(LOCATION_SPEED, registerMap.speed);
+    if (registerMap.speed == 0xFFFFFFFF){
+      //default speed to 0
+      registerMap.speed = 0x00000000;
+      EEPROM.put(LOCATION_SPEED, registerMap.speed);
+    }
+  }
+
+  //Read hold current
+  EEPROM.get(LOCATION_HOLDCURRENT, registerMap.holdCurrent);
+  if (registerMap.holdCurrent == 0xFF){
+    //DEBUGGING: default to ??
+    EEPROM.put(LOCATION_HOLDCURRENT, registerMap.holdCurrent);
+  }
+
+  //Read run current
+  EEPROM.get(LOCATION_RUNCURRENT, registerMap.runCurrent);
+  if (registerMap.runCurrent == 0xFF){
+    //DEBUGGING: default to ??
+    EEPROM.put(LOCATION_RUNCURRENT, registerMap.runCurrent);
+  }
+
+  //Read I2C address
+  EEPROM.get(LOCATION_I2C_ADDRESS, registerMap.i2cAddress);
+  if (registerMap.i2cAddress < 0x08 || registerMap.i2cAddress > 0x77){
+    registerMap.i2cAddress = DEFAULT_I2C_ADDRESS;
+    EEPROM.put(LOCATION_I2C_ADDRESS, registerMap.i2cAddress);
+  }
+}
+
 void printState() {
   Serial.println();
 
@@ -333,7 +388,7 @@ void printState() {
   Serial.println(*(registerPointer + 0xF), HEX);
 
   Serial.print("Enable move NVM: 0x");
-  Serial.print(*(registerPointer + 0x13), HEX);
+  Serial.println(*(registerPointer + 0x13), HEX);
   
   Serial.print("Move to: 0x");
   if (*(registerPointer + 0x17) < 0x10) Serial.print("0");

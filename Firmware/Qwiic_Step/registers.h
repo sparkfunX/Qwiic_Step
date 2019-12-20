@@ -43,7 +43,7 @@ typedef union {
     bool ms1 : 1;
     bool ms2 : 1;
     bool ms3 : 1;
-    bool powerDownPositionReached : 1;
+    bool disableMotorPositionReached : 1;
     bool stopOnLimitSwitchPress : 1;
     bool : 3;
   };

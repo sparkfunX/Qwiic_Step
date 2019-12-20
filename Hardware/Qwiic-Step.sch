@@ -15089,8 +15089,8 @@ and heat sinking/fan to reach this.</text>
 <instance part="SUPPLY22" gate="G$1" x="147.32" y="157.48" smashed="yes">
 <attribute name="VALUE" x="147.32" y="160.274" size="1.778" layer="96" align="bottom-center"/>
 </instance>
-<instance part="GND20" gate="1" x="226.06" y="71.12" smashed="yes" rot="MR0">
-<attribute name="VALUE" x="226.06" y="70.866" size="1.778" layer="96" rot="MR0" align="top-center"/>
+<instance part="GND20" gate="1" x="220.98" y="160.02" smashed="yes" rot="R180">
+<attribute name="VALUE" x="220.98" y="160.274" size="1.778" layer="96" rot="R180" align="top-center"/>
 </instance>
 <instance part="SUPPLY23" gate="G$1" x="144.78" y="88.9" smashed="yes">
 <attribute name="VALUE" x="144.78" y="91.694" size="1.778" layer="96" align="bottom-center"/>
@@ -15131,9 +15131,9 @@ and heat sinking/fan to reach this.</text>
 <attribute name="NAME" x="54.864" y="89.281" size="1.778" layer="95" font="vector"/>
 <attribute name="VALUE" x="54.864" y="84.201" size="1.778" layer="96" font="vector"/>
 </instance>
-<instance part="JP2" gate="G$1" x="226.06" y="81.28" smashed="yes" rot="R90">
-<attribute name="NAME" x="223.52" y="78.74" size="1.778" layer="95" font="vector" rot="R90"/>
-<attribute name="VALUE" x="228.6" y="78.74" size="1.778" layer="96" font="vector" rot="R90" align="top-left"/>
+<instance part="JP2" gate="G$1" x="220.98" y="149.86" smashed="yes" rot="MR270">
+<attribute name="NAME" x="218.44" y="152.4" size="1.778" layer="95" font="vector" rot="MR270"/>
+<attribute name="VALUE" x="223.52" y="152.4" size="1.778" layer="96" font="vector" rot="MR270" align="top-left"/>
 </instance>
 <instance part="D5" gate="G$1" x="55.88" y="15.24" smashed="yes">
 <attribute name="NAME" x="52.451" y="10.668" size="1.778" layer="95" font="vector" rot="R90"/>
@@ -15334,7 +15334,7 @@ and heat sinking/fan to reach this.</text>
 </segment>
 <segment>
 <pinref part="GND20" gate="1" pin="GND"/>
-<wire x1="226.06" y1="73.66" x2="226.06" y2="76.2" width="0.1524" layer="91"/>
+<wire x1="220.98" y1="157.48" x2="220.98" y2="154.94" width="0.1524" layer="91"/>
 <pinref part="JP2" gate="G$1" pin="1"/>
 </segment>
 <segment>
@@ -15450,11 +15450,6 @@ and heat sinking/fan to reach this.</text>
 <wire x1="71.12" y1="165.1" x2="73.66" y2="165.1" width="0.1524" layer="91"/>
 <label x="73.66" y="165.1" size="1.27" layer="95" rot="MR180" xref="yes"/>
 <pinref part="U1" gate="G$1" pin="!ENABLE!"/>
-</segment>
-<segment>
-<wire x1="198.12" y1="167.64" x2="203.2" y2="167.64" width="0.1524" layer="91"/>
-<pinref part="J5" gate="G$1" pin="4"/>
-<label x="203.2" y="167.64" size="1.27" layer="95" font="vector" xref="yes"/>
 </segment>
 <segment>
 <pinref part="U2" gate="U1" pin="PB2(SS/OC1B)"/>
@@ -15898,13 +15893,13 @@ and heat sinking/fan to reach this.</text>
 </net>
 <net name="ADR" class="0">
 <segment>
-<pinref part="U2" gate="U1" pin="PB3(MOSI/OC2)"/>
-<wire x1="226.06" y1="88.9" x2="228.6" y2="88.9" width="0.1524" layer="91"/>
-<wire x1="226.06" y1="86.36" x2="226.06" y2="88.9" width="0.1524" layer="91"/>
-<label x="228.6" y="88.9" size="1.27" layer="95" xref="yes"/>
+<wire x1="220.98" y1="142.24" x2="223.52" y2="142.24" width="0.1524" layer="91"/>
+<wire x1="220.98" y1="144.78" x2="220.98" y2="142.24" width="0.1524" layer="91"/>
+<label x="223.52" y="142.24" size="1.27" layer="95" rot="MR180" xref="yes"/>
 <pinref part="JP2" gate="G$1" pin="2"/>
-<wire x1="210.82" y1="88.9" x2="226.06" y2="88.9" width="0.1524" layer="91"/>
-<junction x="226.06" y="88.9"/>
+<pinref part="U2" gate="U1" pin="PC0(ADC0)"/>
+<wire x1="210.82" y1="142.24" x2="220.98" y2="142.24" width="0.1524" layer="91"/>
+<junction x="220.98" y="142.24"/>
 </segment>
 </net>
 <net name="N$26" class="0">
@@ -16071,6 +16066,18 @@ and heat sinking/fan to reach this.</text>
 <junction x="-20.32" y="149.86"/>
 <label x="-17.78" y="149.86" size="1.27" layer="95" xref="yes"/>
 <pinref part="R6" gate="R1" pin="2"/>
+</segment>
+</net>
+<net name="MOSI" class="0">
+<segment>
+<pinref part="J5" gate="G$1" pin="4"/>
+<wire x1="198.12" y1="167.64" x2="200.66" y2="167.64" width="0.1524" layer="91"/>
+<label x="200.66" y="167.64" size="1.27" layer="95" xref="yes"/>
+</segment>
+<segment>
+<pinref part="U2" gate="U1" pin="PB3(MOSI/OC2)"/>
+<wire x1="210.82" y1="88.9" x2="213.36" y2="88.9" width="0.1524" layer="91"/>
+<label x="213.36" y="88.9" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 </nets>

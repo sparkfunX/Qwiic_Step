@@ -68,7 +68,7 @@ void requestEvent()
   //check if we have made it to our target position
   if (stepper.targetPosition() == stepper.currentPosition()){
     registerMap.motorStatus.isReached = 1;
-    if (registerMap.motorConfig.powerDownPositionReached)
+    if (registerMap.motorConfig.disableMotorPositionReached)
       stepper.disableOutputs();
   }
   else
@@ -90,6 +90,9 @@ void limitSwitchTriggered()
     //stop running motor
     stepper.stop();
   }
+
+  if (registerMap.motorConfig.disableMotorPositionReached)
+    stepper.disableOutputs();
 }
 
 void eStopTriggered()
@@ -113,6 +116,6 @@ void eStopTriggered()
   registerMapOld.acceleration = 0;
 
   //disable power if user has configured motor to do so
-  if (registerMap.motorConfig.powerDownPositionReached)
+  if (registerMap.motorConfig.disableMotorPositionReached)
     stepper.disableOutputs();
 }
