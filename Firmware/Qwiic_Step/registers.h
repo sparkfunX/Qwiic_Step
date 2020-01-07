@@ -17,11 +17,13 @@ typedef union {
   struct
   {
     bool requestedPosReachedEnable : 1;
+    bool requestedPosReachedIntTriggered : 1;
     bool limSwitchPressedEnable : 1;
-    bool : 6;
+    bool limSwitchPressedIntTriggered : 1;
+    bool : 4;
   };
   uint8_t byteWrapped;
-} interruptEnableBitField;
+} interruptConfigBitField;
 
 typedef union {
   struct
@@ -53,11 +55,12 @@ typedef union {
 typedef union {
   struct
   {
+    bool run : 1;
+    bool runSpeed : 1;
+    bool runSpeedToPosition : 1;
     bool stop : 1;
-    bool runTo : 1;
-    bool runContinuous : 1;
-    bool sleep : 1;
-    bool : 4;
+    bool disableMotor : 1;
+    bool : 3;
   };
   uint8_t byteWrapped;
 } deviceControlBitField;
@@ -66,7 +69,7 @@ typedef struct memoryMap
 {
   uint8_t id;
   uint16_t firmware;
-  interruptEnableBitField interruptEnable;
+  interruptConfigBitField interruptConfig;
   
   statusRegisterBitField motorStatus;
   deviceConfigBitField motorConfig;
@@ -91,4 +94,6 @@ typedef struct memoryMap
   uint16_t runCurrent;       //Max 2000mA
 
   uint8_t i2cAddress;
+
+//  uint32_t moveNVM;
 };

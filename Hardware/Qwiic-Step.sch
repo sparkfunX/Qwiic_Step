@@ -14841,8 +14841,8 @@ and heat sinking/fan to reach this.</text>
 <text x="66.04" y="10.16" size="1.27" layer="97">TXO</text>
 <text x="66.04" y="7.62" size="1.27" layer="97">RXI</text>
 <text x="86.36" y="53.34" size="1.27" layer="97">Qwiic Connectors</text>
-<text x="177.8" y="55.88" size="1.4224" layer="97">Limit switch</text>
-<text x="203.2" y="55.88" size="1.4224" layer="97">E-stop</text>
+<text x="208.28" y="55.88" size="1.4224" layer="97">Limit switch</text>
+<text x="180.34" y="55.88" size="1.4224" layer="97">E-stop</text>
 <text x="2.54" y="20.32" size="1.4224" layer="97">3.5mm Screw Terminal</text>
 <text x="256.54" y="-2.54" size="1.27" layer="91">heat sink?</text>
 </plain>

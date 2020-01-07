@@ -4,11 +4,15 @@
 //When Qwiic button receives data bytes from Master this function is called as an interrupt
 //Adjusts memoryMap with incoming data bytes
 void receiveEvent(int numberOfBytesReceived)
-{
+{    
   registerNumber = Wire.read();  //Get the memory map offset from the user
 
-  updateFlag = true;
-
+  //DEBUGGING: need to clear this up...
+//  if (registerNumber == 0x07 || registerNumber == 0x0F || registerNumber == 0x14 || registerNumber == 0x18 || registerNumber == 0x1C || registerNumber == 0x20){
+    //set flag, we have to update state once the write has completed
+    updateFlag = true;
+//  }
+  
   //Begin recording the following incoming bytes to the temp memory map
   //starting at the registerNumber (the first byte received)
   for (uint8_t x = 0; x < numberOfBytesReceived - 1; x++)
@@ -23,6 +27,8 @@ void receiveEvent(int numberOfBytesReceived)
       *(registerPointer + registerNumber + x) |= temp & *(protectionPointer + registerNumber + x);  //Or in the user's request (clensed against protection bits)
     }
   }
+
+//  printState();
 }
 
 //Respond to read commands
@@ -65,34 +71,20 @@ void requestEvent()
   //update previous speed
   previousSpeed = currentSpeed;
 
-  //check if we have made it to our target position
-  if (stepper.targetPosition() == stepper.currentPosition()){
-    registerMap.motorStatus.isReached = 1;
-    if (registerMap.motorConfig.disableMotorPositionReached)
-      stepper.disableOutputs();
-  }
-  else
-    registerMap.motorStatus.isReached = 0;
+//  //check if we have made it to our target position
+////  if (stepper.targetPosition() == stepper.currentPosition()){
+//  if (stepper.distanceToGo() == 0){
+//    Serial.println("Position reached!");
+//    registerMap.motorStatus.isReached = 1;
+//    if (registerMap.motorConfig.disableMotorPositionReached)
+//      stepper.disableOutputs();
+//  }
+//  else
+//    registerMap.motorStatus.isReached = 0;
 
   //Write to I2C bus
   uint8_t len = (sizeof(memoryMap) - registerNumber);
   Wire.write((uint8_t*)(registerPointer + registerNumber), (len > TWI_BUFFER_LENGTH) ? TWI_BUFFER_LENGTH : len );
-}
-
-void limitSwitchTriggered()
-{
-  //update status of motor
-  //isLimited status depends on the state of the interrupt pin
-  registerMap.motorStatus.isLimited = !digitalRead(pin_interrupt0);   //take the inverse of the interrupt pin because it is pulled high
-
-  //stop the motor is user has configured it to
-  if (registerMap.motorConfig.stopOnLimitSwitchPress) {
-    //stop running motor
-    stepper.stop();
-  }
-
-  if (registerMap.motorConfig.disableMotorPositionReached)
-    stepper.disableOutputs();
 }
 
 void eStopTriggered()
@@ -116,6 +108,22 @@ void eStopTriggered()
   registerMapOld.acceleration = 0;
 
   //disable power if user has configured motor to do so
+  if (registerMap.motorConfig.disableMotorPositionReached)
+    stepper.disableOutputs();
+}
+
+void limitSwitchTriggered()
+{
+  //update status of motor
+  //isLimited status depends on the state of the interrupt pin
+  registerMap.motorStatus.isLimited = !digitalRead(pin_interrupt0);   //take the inverse of the interrupt pin because it is pulled high
+
+  //stop the motor is user has configured it to
+  if (registerMap.motorConfig.stopOnLimitSwitchPress) {
+    //stop running motor
+    stepper.stop();
+  }
+
   if (registerMap.motorConfig.disableMotorPositionReached)
     stepper.disableOutputs();
 }

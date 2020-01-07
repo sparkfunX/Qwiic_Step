@@ -4,9 +4,9 @@
 #define STEP 7
 #define DIRECTION 8
 #define ENABLE 10
-#define MS1 2
-#define MS2 3
-#define MS3 4
+#define MS1 4
+#define MS2 5
+#define MS3 6
 
 #define CURRENT_REFERENCE 11 //PWM capapble pin
 
@@ -36,21 +36,21 @@ void setup()
   pinMode(MS2, OUTPUT);
   pinMode(MS3, OUTPUT);
 
-  //setStepSize(STEP_SIZE_FULL);
-  setStepSize(STEP_SIZE_SIXTEENTH);
+  setStepSize(STEP_SIZE_FULL);
+//  setStepSize(STEP_SIZE_SIXTEENTH);
 
   stepper.setMaxSpeed(5000);
   stepper.setSpeed(4000);
-  //stepper.setAcceleration(1.5);
+  stepper.setAcceleration(1000);
 
-  //stepper.moveTo(10000);
+  stepper.move(400);
   
 }
 
 void loop()
 {
-  //stepper.run();
-  stepper.runSpeed();
+  stepper.run();
+//  stepper.runSpeed();
 
   //stepper.runToNewPosition(10000);
 }
