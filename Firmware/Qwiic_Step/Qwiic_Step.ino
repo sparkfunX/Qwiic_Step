@@ -45,7 +45,7 @@ volatile memoryMap registerMap {
   {1, 0, 0, 0, 0},     //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
   0x00000000,          //currentPos
   0x00000000,          //distanceToGo
-  0x00000000,          //move
+  0x0FFFFFFF,          //move
   0x00,                //enableMoveNVM
   0x00000000,          //moveTo
   0x00000000,          //maxSpeed (float)
@@ -120,6 +120,10 @@ AccelStepper stepper(AccelStepper::DRIVER, stp, dir); //Stepper driver, 2 pins r
 
 void setup(void)
 {
+
+  pinMode(12, OUTPUT);
+  digitalWrite(12, LOW);
+  
   //Configure ATMega pins
   //Motor config pins are all outputs
   pinMode(pin_MS1, OUTPUT);
@@ -192,7 +196,7 @@ void loop(void) {
   //Update accelstepper functions
   if (updateFlag == true) {
     updateStepper();
-    printState();
+    //printState();
 
     //    //Record anything new to EEPROM
     //    recordSystemSettings();
@@ -238,34 +242,52 @@ void startI2C(memoryMap *map)
 }
 
 void updateStepper() {
-  //call accelstepper functions with the values in registerMap
-//  stepper.setCurrentPosition(registerMap.currentPos);
-//  if (registerMapOld.maxSpeed != registerMap.maxSpeed) {
-    stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
-//    registerMapOld.maxSpeed = registerMap.maxSpeed;
-//  }
-//  if (registerMapOld.speed != registerMap.speed) {
-    stepper.setSpeed(convertToFloat(registerMap.speed));
-//    registerMapOld.speed = registerMap.speed;
-//  }
-//  if (registerMapOld.acceleration != registerMap.acceleration) {
-    stepper.setAcceleration(convertToFloat(registerMap.acceleration));
-//    registerMapOld.acceleration = registerMap.acceleration;
-//  }
+  Serial.println("Hello, I'm in updateStepper!");
 
-//    if ( registerMap.move != 0x0FFFFFFF) {
-//      Serial.println("Stepper move");
-      stepper.move(registerMap.move);
-//      registerMap.move = 0x0FFFFFFF;
-//    }
+  
+  stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
+  stepper.setSpeed(convertToFloat(registerMap.speed));
+  digitalWrite(12, HIGH);
+  stepper.setAcceleration(convertToFloat(registerMap.acceleration));
 
+  //
+  if (registerMap.move != 0xFFFFFFFF){
+    stepper.move(registerMap.move);
+    registerMap.move = 0xFFFFFFFF;
+  }
 
-  stepper.moveTo(registerMap.moveTo);
+  digitalWrite(12, LOW);
 
-  //update the step mode by flipping pins MS1, MS2, MS3
-  digitalWrite(pin_MS1, registerMap.motorConfig.ms1);
-  digitalWrite(pin_MS2, registerMap.motorConfig.ms2);
-  digitalWrite(pin_MS3, registerMap.motorConfig.ms3);
+//  stepper.move(registerMap.move);
+  
+//  //call accelstepper functions with the values in registerMap
+////  stepper.setCurrentPosition(registerMap.currentPos);
+////  if (registerMapOld.maxSpeed != registerMap.maxSpeed) {
+//    stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
+////    registerMapOld.maxSpeed = registerMap.maxSpeed;
+////  }
+////  if (registerMapOld.speed != registerMap.speed) {
+//    stepper.setSpeed(convertToFloat(registerMap.speed));
+////    registerMapOld.speed = registerMap.speed;
+////  }
+////  if (registerMapOld.acceleration != registerMap.acceleration) {
+//    stepper.setAcceleration(convertToFloat(registerMap.acceleration));
+////    registerMapOld.acceleration = registerMap.acceleration;
+////  }
+//
+////    if ( registerMap.move != 0x0FFFFFFF) {
+////      Serial.println("Stepper move");
+//      stepper.move(registerMap.move);
+////      registerMap.move = 0x0FFFFFFF;
+////    }
+//
+//
+////  stepper.moveTo(registerMap.moveTo);
+//
+//  //update the step mode by flipping pins MS1, MS2, MS3
+//  digitalWrite(pin_MS1, registerMap.motorConfig.ms1);
+//  digitalWrite(pin_MS2, registerMap.motorConfig.ms2);
+//  digitalWrite(pin_MS3, registerMap.motorConfig.ms3);
 
   //  if (registerMap.enableMoveNVM == 0x59) {
   //    recordSystemSettings(); //record registerMap to EEPROM?

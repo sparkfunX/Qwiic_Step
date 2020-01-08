@@ -5,6 +5,7 @@
 //Adjusts memoryMap with incoming data bytes
 void receiveEvent(int numberOfBytesReceived)
 {    
+  
   registerNumber = Wire.read();  //Get the memory map offset from the user
 
   //DEBUGGING: need to clear this up...
@@ -28,7 +29,8 @@ void receiveEvent(int numberOfBytesReceived)
     }
   }
 
-//  printState();
+  //printState();
+  
 }
 
 //Respond to read commands
