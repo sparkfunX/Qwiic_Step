@@ -9,6 +9,7 @@
 #define FIRMWARE_VERSION 0x0100
 #define DEFAULT_I2C_ADDRESS 0x52
 #define TEST_SETUP 1
+#define DEBUG_PIN 12
 
 //Hardware connections
 //test set-up pins
@@ -121,8 +122,8 @@ AccelStepper stepper(AccelStepper::DRIVER, stp, dir); //Stepper driver, 2 pins r
 void setup(void)
 {
 
-  pinMode(12, OUTPUT);
-  digitalWrite(12, LOW);
+  pinMode(DEBUG_PIN, OUTPUT);
+  digitalWrite(DEBUG_PIN, LOW);
   
   //Configure ATMega pins
   //Motor config pins are all outputs
@@ -196,25 +197,19 @@ void loop(void) {
   //Update accelstepper functions
   if (updateFlag == true) {
     updateStepper();
-    //printState();
+//    printState();
 
-    //    //Record anything new to EEPROM
-    //    recordSystemSettings();
+//    //Record anything new to EEPROM
+//    recordSystemSettings();
 
     //clear updateFlag
     updateFlag = false;
-
-    //    Serial.println(registerMap.interruptConfig);
   }
 
   if (registerMap.motorStatus.eStopped == false)
   {
     stepper.run();
   }
-
-  //  if (stepper.targetPosition() == stepper.currentPosition()) {
-  //
-  //  }
 }
 
 void startI2C(memoryMap *map)
@@ -242,52 +237,48 @@ void startI2C(memoryMap *map)
 }
 
 void updateStepper() {
-  Serial.println("Hello, I'm in updateStepper!");
-
+//  //DBUGGING
+//  digitalWrite(DEBUG_PIN, HIGH);
   
-  stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
-  stepper.setSpeed(convertToFloat(registerMap.speed));
-  digitalWrite(12, HIGH);
-  stepper.setAcceleration(convertToFloat(registerMap.acceleration));
+  //call accelstepper functions with the values in registerMap
+  //check if there is a new value for maxSpeed in registerMap
+  if (registerMapOld.maxSpeed != registerMap.maxSpeed){
+    //if there is, update accelstepper library
+    stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
+    //update registerMapOld
+    registerMapOld.maxSpeed = registerMap.maxSpeed;
+  }
+  
+  if (registerMapOld.speed != registerMap.speed){
+    stepper.setSpeed(convertToFloat(registerMap.speed));
+    registerMapOld.speed = registerMap.speed;  
+  }
+  
+  if (registerMapOld.acceleration != registerMap.acceleration){
+    stepper.setAcceleration(convertToFloat(registerMap.acceleration));
+    registerMapOld.acceleration = registerMap.acceleration;
+  }
 
-  //
+  //DEBUG: would this be the right way to service moveTo function?
+  if (registerMapOld.moveTo != registerMap.moveTo){
+    stepper.moveTo(registerMap.moveTo);
+    registerMapOld.moveTo = registerMap.moveTo;
+  }
+
+  //0xFFFFFFFF is an illegal value for move function
+  //Helps us know when accelstepper move function has been serviced
   if (registerMap.move != 0xFFFFFFFF){
     stepper.move(registerMap.move);
     registerMap.move = 0xFFFFFFFF;
   }
 
-  digitalWrite(12, LOW);
+  //update the step mode by flipping pins MS1, MS2, MS3
+  digitalWrite(pin_MS1, registerMap.motorConfig.ms1);
+  digitalWrite(pin_MS2, registerMap.motorConfig.ms2);
+  digitalWrite(pin_MS3, registerMap.motorConfig.ms3);
 
-//  stepper.move(registerMap.move);
-  
-//  //call accelstepper functions with the values in registerMap
-////  stepper.setCurrentPosition(registerMap.currentPos);
-////  if (registerMapOld.maxSpeed != registerMap.maxSpeed) {
-//    stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
-////    registerMapOld.maxSpeed = registerMap.maxSpeed;
-////  }
-////  if (registerMapOld.speed != registerMap.speed) {
-//    stepper.setSpeed(convertToFloat(registerMap.speed));
-////    registerMapOld.speed = registerMap.speed;
-////  }
-////  if (registerMapOld.acceleration != registerMap.acceleration) {
-//    stepper.setAcceleration(convertToFloat(registerMap.acceleration));
-////    registerMapOld.acceleration = registerMap.acceleration;
-////  }
-//
-////    if ( registerMap.move != 0x0FFFFFFF) {
-////      Serial.println("Stepper move");
-//      stepper.move(registerMap.move);
-////      registerMap.move = 0x0FFFFFFF;
-////    }
-//
-//
-////  stepper.moveTo(registerMap.moveTo);
-//
-//  //update the step mode by flipping pins MS1, MS2, MS3
-//  digitalWrite(pin_MS1, registerMap.motorConfig.ms1);
-//  digitalWrite(pin_MS2, registerMap.motorConfig.ms2);
-//  digitalWrite(pin_MS3, registerMap.motorConfig.ms3);
+//  //DEBUGGING
+//  digitalWrite(DEBUG_PIN, LOW);
 
   //  if (registerMap.enableMoveNVM == 0x59) {
   //    recordSystemSettings(); //record registerMap to EEPROM?
@@ -296,15 +287,15 @@ void updateStepper() {
 }
 
 void updateMotorStatus() {
+  
   //check if we have made it to our target position
   if (stepper.targetPosition() == stepper.currentPosition()) {
+    
     //if this is our first "isReached" instance, set the interrupt flag
     if (registerMap.motorStatus.isReached == 0) {
-      Serial.println("HELLLLLOOOOOOO INTERRUPT TRIGGEREDDDDDDDDDD!!!!!!!!!!");
-      //DEBUGGING
-      //      while(Serial.available() == 0){}
       registerMap.interruptConfig.requestedPosReachedIntTriggered = 1;
     }
+    
     //motor has reached its destination
     registerMap.motorStatus.isReached = 1;
     //    if (registerMap.motorConfig.disableMotorPositionReached)
@@ -313,11 +304,6 @@ void updateMotorStatus() {
   else {  //motor has not yet reached destination
     registerMap.motorStatus.isReached = 0;
   }
-  //  //DEBUGGING
-  //  Serial.print("isReached: ");
-  //  Serial.println(registerMap.motorStatus.isReached);
-  //  Serial.print("isTriggered: ");
-  //  Serial.println(registerMap.interruptConfig.requestedPosReachedIntTriggered);
 }
 
 //void recordSystemSettings()
