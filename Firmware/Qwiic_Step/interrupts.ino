@@ -27,8 +27,6 @@ void receiveEvent(int numberOfBytesReceived)
       *(registerPointer + registerNumber + x) |= temp & *(protectionPointer + registerNumber + x);  //Or in the user's request (clensed against protection bits)
     }
   }
-
-//  printState();
 }
 
 //Respond to read commands
@@ -37,54 +35,32 @@ void receiveEvent(int numberOfBytesReceived)
 //Can only write 32 bytes at a time. Conditional takes care of cases where we write too many byte (memoryMap > 32 bytes)
 void requestEvent()
 {
+  //DEBUG: doesn't the user have to clear this?!
   //update status of isLimited, what is the state of the interrupt pin?
   //will hopefully clear isLimited bit when limit switch is released
-  registerMap.motorStatus.isLimited = !digitalRead(PIN_INTERRUPT0);   //take the inverse of the interrupt pin because it is pulled high
 
-  //update motor status
-  float currentSpeed = stepper.speed();
+//  registerMap.motorStatus.isLimited = !digitalRead(pin_interrupt0);   //take the inverse of the interrupt pin because it is pulled high
 
-  if (stepper.isRunning()){
-    registerMap.motorStatus.isRunning = 1;
-    if (previousSpeed < currentSpeed) {
-      //    Serial.println("I'm acclerating!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-      registerMap.motorStatus.isAccelerating = 1;
-      registerMap.motorStatus.isDecelerating = 0;
-    }
-    else if (previousSpeed > currentSpeed) {
-      //    Serial.println("I'm decelerating!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-      registerMap.motorStatus.isAccelerating = 0;
-      registerMap.motorStatus.isDecelerating = 1;
-    }
-    else {
-      //    Serial.println("I'M NOT MOVING AT ALLLLLLLL~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-      registerMap.motorStatus.isAccelerating = 0;
-      registerMap.motorStatus.isDecelerating = 0;
-    }
-  }
-  else {
-    registerMap.motorStatus.isRunning = 0;
-    registerMap.motorStatus.isAccelerating = 0;
-    registerMap.motorStatus.isDecelerating = 0;
-  }
-
-  //update previous speed
-  previousSpeed = currentSpeed;
-
-//  //check if we have made it to our target position
-////  if (stepper.targetPosition() == stepper.currentPosition()){
-//  if (stepper.distanceToGo() == 0){
-//    Serial.println("Position reached!");
-//    registerMap.motorStatus.isReached = 1;
-//    if (registerMap.motorConfig.disableMotorPositionReached)
-//      stepper.disableOutputs();
-//  }
-//  else
-//    registerMap.motorStatus.isReached = 0;
 
   //Write to I2C bus
   uint8_t len = (sizeof(memoryMap) - registerNumber);
   Wire.write((uint8_t*)(registerPointer + registerNumber), (len > TWI_BUFFER_LENGTH) ? TWI_BUFFER_LENGTH : len );
+}
+
+void limitSwitchTriggered()
+{
+  //update status of motor
+  //isLimited status depends on the state of the interrupt pin
+  registerMap.motorStatus.isLimited = !digitalRead(pin_interrupt1);   //take the inverse of the interrupt pin because it is pulled high
+
+  //stop the motor is user has configured it to
+  if (registerMap.motorConfig.stopOnLimitSwitchPress) {
+    //stop running motor
+    stepper.stop();
+  }
+
+//  if (registerMap.motorConfig.disableMotorPositionReached)
+//    stepper.disableOutputs();
 }
 
 void eStopTriggered()
@@ -127,3 +103,4 @@ void limitSwitchTriggered()
   if (registerMap.motorConfig.disableMotorPositionReached)
     stepper.disableOutputs();
 }
+

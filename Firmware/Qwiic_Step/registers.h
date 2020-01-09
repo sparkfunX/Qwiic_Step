@@ -4,8 +4,7 @@ typedef union {
     bool requestedPosReachedEnable : 1;
     bool requestedPosReachedIntTriggered : 1;
     bool limSwitchPressedEnable : 1;
-    bool limSwitchPressedIntTriggered : 1;
-    bool : 4;
+    bool : 5;
   };
   uint8_t byteWrapped;
 } interruptConfigBitField;
