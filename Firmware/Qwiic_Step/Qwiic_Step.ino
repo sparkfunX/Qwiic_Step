@@ -16,27 +16,27 @@
 //Hardware connections
 #if defined(__AVR_ATmega328P__) //Used for development
 #define DEBUG_PIN 12
-const uint8_t stp = 7;
-const uint8_t dir = 8;
-const uint8_t pin_MS1 = 4;
-const uint8_t pin_MS2 = 5;
-const uint8_t pin_MS3 = 6;
-const uint8_t pin_interrupt0 = 2;   //E-stop
-const uint8_t pin_interrupt1 = 3;   //Limit switch
-const uint8_t pin_externalInterrupt = A1;
+const uint8_t PIN_STEP = 7;
+const uint8_t PIN_DIRECTION = 8;
+const uint8_t PIN_MS1 = 4;
+const uint8_t PIN_MS2 = 5;
+const uint8_t PIN_MS3 = 6;
+const uint8_t PIN_INTERRUPT0 = 2;   //E-stop
+const uint8_t PIN_INTERRUPT1 = 3;   //Limit switch
+const uint8_t PIN_INT_OUTPUT = A1;
 #elif defined(__AVR_ATtiny84__) //Used in production
-const uint8_t stp = A3;
-const uint8_t dir = 6;
-const uint8_t pin_MS1 = 9;
-const uint8_t pin_MS2 = 8;
-const uint8_t pin_MS3 = 7;
+const uint8_t PIN_STEP = A3;
+const uint8_t PIN_DIRECTION = 6;
+const uint8_t PIN_MS1 = 9;
+const uint8_t PIN_MS2 = 8;
+const uint8_t PIN_MS3 = 7;
 const uint8_t addressPin = 11;
 const uint8_t curr_ref_pwm = 5;
 const uint8_t curr_sense = A6;   //DEBUG: right way to reference these pins?
 const uint8_t a49885_reset = A7; //DEBUG: might not work... is pin only ADC input?
-const uint8_t pin_interrupt0 = 2;   //E-Stop
-const uint8_t pin_interrupt1 = 3;   //Limit switch
-const uint8_t pin_externalInterrupt = A1;
+const uint8_t PIN_INTERRUPT0 = 2;   //E-Stop
+const uint8_t PIN_INTERRUPT1 = 3;   //Limit switch
+const uint8_t PIN_INT_OUTPUT = A1;
 #endif
 
 volatile memoryMap registerMap {
@@ -117,7 +117,7 @@ volatile boolean updateFlag = false; //Goes true when we recieve new bytes from 
 float previousSpeed;
 
 //Define a stepper and its pins
-AccelStepper stepper(AccelStepper::DRIVER, stp, dir); //Stepper driver, 2 pins required
+AccelStepper stepper(AccelStepper::DRIVER, PIN_STEP, PIN_DIRECTION); //Stepper driver, 2 pins required
 
 void setup(void)
 {
@@ -127,13 +127,13 @@ void setup(void)
   
   //Configure ATMega pins
   //Motor config pins are all outputs
-  pinMode(pin_MS1, OUTPUT);
-  pinMode(pin_MS2, OUTPUT);
-  pinMode(pin_MS3, OUTPUT);
+  pinMode(PIN_MS1, OUTPUT);
+  pinMode(PIN_MS2, OUTPUT);
+  pinMode(PIN_MS3, OUTPUT);
   //Default to full step mode
-  digitalWrite(pin_MS1, LOW);
-  digitalWrite(pin_MS2, LOW);
-  digitalWrite(pin_MS3, LOW);
+  digitalWrite(PIN_MS1, LOW);
+  digitalWrite(PIN_MS2, LOW);
+  digitalWrite(PIN_MS3, LOW);
 
   //    pinMode(addressPin, INPUT_PULLUP);
   //    pinMode(curr_ref_pwm, OUTPUT);
@@ -141,9 +141,9 @@ void setup(void)
   //    pinMode(a49885_reset, OUTPUT);
 
   //interrupt pins... all inputs?
-  pinMode(pin_interrupt0, INPUT_PULLUP);    //E-Stop
-  pinMode(pin_interrupt1, INPUT_PULLUP);    //Limit Switch
-  pinMode(pin_externalInterrupt, INPUT_PULLUP);
+  pinMode(PIN_INTERRUPT0, INPUT_PULLUP);    //E-Stop
+  pinMode(PIN_INTERRUPT1, INPUT_PULLUP);    //Limit Switch
+  pinMode(PIN_INT_OUTPUT, INPUT_PULLUP);
 
   //DEBUG: do I need to disable ADC & Brown-out detect?!
 
@@ -162,8 +162,8 @@ void setup(void)
   //  readSystemSettings(); //Load all system settings from EEPROM
 
   //attach state-change of interrupt pins to corresponding ISRs
-  attachInterrupt(digitalPinToInterrupt(pin_interrupt0), eStopTriggered, LOW);
-  attachInterrupt(digitalPinToInterrupt(pin_interrupt1), limitSwitchTriggered, LOW);
+  attachInterrupt(digitalPinToInterrupt(PIN_INTERRUPT0), eStopTriggered, LOW);
+  attachInterrupt(digitalPinToInterrupt(PIN_INTERRUPT1), limitSwitchTriggered, LOW);
 
   //Determine the I2C address to be using and listen on I2C bus
   startI2C(&registerMap);
@@ -182,13 +182,13 @@ void loop(void) {
   {
     Serial.println("Hello");
     //pull pin low
-    pinMode(pin_externalInterrupt, OUTPUT);
-    digitalWrite(pin_externalInterrupt, LOW);
+    pinMode(PIN_INT_OUTPUT, OUTPUT);
+    digitalWrite(PIN_INT_OUTPUT, LOW);
   }
   else
   {
     //go to high-impedance mode
-    pinMode(pin_externalInterrupt, INPUT_PULLUP);
+    pinMode(PIN_INT_OUTPUT, INPUT_PULLUP);
   }
 
   //Update accelstepper functions
@@ -270,9 +270,9 @@ void updateStepper() {
   }
 
   //update the step mode by flipping pins MS1, MS2, MS3
-  digitalWrite(pin_MS1, registerMap.motorConfig.ms1);
-  digitalWrite(pin_MS2, registerMap.motorConfig.ms2);
-  digitalWrite(pin_MS3, registerMap.motorConfig.ms3);
+  digitalWrite(PIN_MS1, registerMap.motorConfig.ms1);
+  digitalWrite(PIN_MS2, registerMap.motorConfig.ms2);
+  digitalWrite(PIN_MS3, registerMap.motorConfig.ms3);
 
 //  //DEBUGGING
 //  digitalWrite(DEBUG_PIN, LOW);
