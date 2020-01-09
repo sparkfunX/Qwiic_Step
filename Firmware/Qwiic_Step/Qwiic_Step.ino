@@ -166,24 +166,24 @@ void setup(void)
 }
 
 void loop(void) {
-  //update motor status
-  updateMotorStatus();
+  //Compare current state and see if we need to update any isReached, etc bits
+  updateStatusBits();
 
-  //update external interrupt pin output
-  //if an interrupt is triggered
+  //Check to see if we need to drive interrupt pin
   if ((registerMap.interruptConfig.requestedPosReachedEnable && registerMap.interruptConfig.requestedPosReachedIntTriggered)
       //    ||(registerMap.interruptConfig.limSwitchPressedEnable && registerMap.motorStatus.isLimited)
      )
   {
-    Serial.println("Hello");
-    //pull pin low
+    Serial.println("INT pin driven low");
+
+    //Drive INT pin low
     pinMode(PIN_INT_OUTPUT, OUTPUT);
     digitalWrite(PIN_INT_OUTPUT, LOW);
   }
   else
   {
-    //go to high-impedance mode
-    pinMode(PIN_INT_OUTPUT, INPUT_PULLUP);
+    //Go to high-impedance mode
+    pinMode(PIN_INT_OUTPUT, INPUT); //Pin has external pullup
   }
 
   //Update accelstepper functions
@@ -198,6 +198,7 @@ void loop(void) {
     updateFlag = false;
   }
 
+  //If everything is good, continue running the stepper
   if (registerMap.motorStatus.eStopped == false)
   {
     stepper.run();
@@ -278,7 +279,8 @@ void updateStepper() {
   //  }
 }
 
-void updateMotorStatus() {
+//Update the status bits within the STATUS register
+void updateStatusBits() {
   
   //check if we have made it to our target position
   if (stepper.targetPosition() == stepper.currentPosition()) {
