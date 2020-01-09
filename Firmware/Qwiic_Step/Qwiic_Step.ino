@@ -165,6 +165,25 @@ void setup(void)
 }
 
 void loop(void) {
+
+#if defined(__AVR_ATmega328P__) //Used for development
+  if(Serial.available())
+  {
+    byte incoming = Serial.read();
+
+    if(incoming == 'p')
+    {
+      printState();
+    }
+    else
+    {
+      Serial.print("Unknown: ");
+      Serial.write(incoming);
+      Serial.println();
+    }
+  }
+  #endif
+  
   //Compare current state and see if we need to update any isReached, etc bits
   updateStatusBits();
 
