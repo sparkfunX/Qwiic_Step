@@ -7,8 +7,6 @@
 #include <AccelStepper.h> //Click here to get the library: http://librarymanager/All#AccelStepper by Mike McCauley
 #include "registers.h"
 
-#include <avr/sleep.h> //Needed for sleep_mode
-
 #define DEVICE_ID 0x60
 #define FIRMWARE_VERSION 0x0100
 #define DEFAULT_I2C_ADDRESS 0x52
@@ -121,15 +119,16 @@ AccelStepper stepper(AccelStepper::DRIVER, PIN_STEP, PIN_DIRECTION); //Stepper d
 
 void setup(void)
 {
-
+#if defined(__AVR_ATmega328P__) //Used for development
   pinMode(DEBUG_PIN, OUTPUT);
   digitalWrite(DEBUG_PIN, LOW);
+#endif
   
-  //Configure ATMega pins
   //Motor config pins are all outputs
   pinMode(PIN_MS1, OUTPUT);
   pinMode(PIN_MS2, OUTPUT);
   pinMode(PIN_MS3, OUTPUT);
+
   //Default to full step mode
   digitalWrite(PIN_MS1, LOW);
   digitalWrite(PIN_MS2, LOW);
@@ -140,33 +139,29 @@ void setup(void)
   //    pinMode(curr_sense, INPUT);
   //    pinMode(a49885_reset, OUTPUT);
 
-  //interrupt pins... all inputs?
   pinMode(PIN_INTERRUPT0, INPUT_PULLUP);    //E-Stop
   pinMode(PIN_INTERRUPT1, INPUT_PULLUP);    //Limit Switch
-  pinMode(PIN_INT_OUTPUT, INPUT_PULLUP);
-
-  //DEBUG: do I need to disable ADC & Brown-out detect?!
-
-  //Power down various bits of hardware to lower power usage
-  set_sleep_mode(SLEEP_MODE_IDLE);
-  sleep_enable();
+  pinMode(PIN_INT_OUTPUT, OUTPUT); //'INT' pin on board to indicate there is an interrupt
 
   //Print info to Serial Monitor
+#if defined(__AVR_ATmega328P__) //Used for development
   Serial.begin(115200);
   Serial.println("Qwiic Button");
   Serial.print("Address: 0x");
   Serial.println(registerMap.i2cAddress, HEX);
   Serial.print("Device ID: 0x");
   Serial.println(registerMap.id, HEX);
+#endif
 
   //  readSystemSettings(); //Load all system settings from EEPROM
 
-  //attach state-change of interrupt pins to corresponding ISRs
+  //Attach state-change of interrupt pins to corresponding ISRs
   attachInterrupt(digitalPinToInterrupt(PIN_INTERRUPT0), eStopTriggered, LOW);
   attachInterrupt(digitalPinToInterrupt(PIN_INTERRUPT1), limitSwitchTriggered, LOW);
 
   //Determine the I2C address to be using and listen on I2C bus
   startI2C(&registerMap);
+
   printState();
 }
 
@@ -329,6 +324,7 @@ void updateMotorStatus() {
 //}
 
 void printState() {
+#if defined(__AVR_ATmega328P__) //Used for development
   Serial.println();
 
   Serial.print("Register map id: 0x");
@@ -442,4 +438,5 @@ void printState() {
 
   Serial.print("I2C address: 0x");
   Serial.println(*(registerPointer + 0x29), HEX);
+#endif
 }
