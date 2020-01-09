@@ -1,6 +1,10 @@
+/*
+  Firmware to drive Qwiic Step
+*/
+
 #include <Wire.h>
 #include <EEPROM.h>
-#include <AccelStepper.h>
+#include <AccelStepper.h> //Click here to get the library: http://librarymanager/All#AccelStepper by Mike McCauley
 #include "registers.h"
 
 #include <avr/sleep.h> //Needed for sleep_mode
@@ -8,12 +12,10 @@
 #define DEVICE_ID 0x60
 #define FIRMWARE_VERSION 0x0100
 #define DEFAULT_I2C_ADDRESS 0x52
-#define TEST_SETUP 1
-#define DEBUG_PIN 12
 
 //Hardware connections
-//test set-up pins
-#if defined(TEST_SETUP)
+#if defined(__AVR_ATmega328P__) //Used for development
+#define DEBUG_PIN 12
 const uint8_t stp = 7;
 const uint8_t dir = 8;
 const uint8_t pin_MS1 = 4;
@@ -22,7 +24,7 @@ const uint8_t pin_MS3 = 6;
 const uint8_t pin_interrupt0 = 2;   //E-stop
 const uint8_t pin_interrupt1 = 3;   //Limit switch
 const uint8_t pin_externalInterrupt = A1;
-#elif
+#elif defined(__AVR_ATtiny84__) //Used in production
 const uint8_t stp = A3;
 const uint8_t dir = 6;
 const uint8_t pin_MS1 = 9;
@@ -111,8 +113,6 @@ volatile uint8_t registerNumber;  //Gets set when user writes an address. We the
 
 volatile boolean updateFlag = false; //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
 
-volatile bool moveRegisterServiced = true;
-
 //temp variable to hold previous speed of motor to calculate its acceleration status
 float previousSpeed;
 
@@ -160,9 +160,6 @@ void setup(void)
   Serial.println(registerMap.id, HEX);
 
   //  readSystemSettings(); //Load all system settings from EEPROM
-
-  //temporary variable to calculate acceleration
-  previousSpeed = stepper.speed();
 
   //attach state-change of interrupt pins to corresponding ISRs
   attachInterrupt(digitalPinToInterrupt(pin_interrupt0), eStopTriggered, LOW);
