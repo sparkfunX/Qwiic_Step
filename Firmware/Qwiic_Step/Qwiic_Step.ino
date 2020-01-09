@@ -123,7 +123,7 @@ void setup(void)
   pinMode(DEBUG_PIN, OUTPUT);
   digitalWrite(DEBUG_PIN, LOW);
 #endif
-  
+
   //Motor config pins are all outputs
   pinMode(PIN_MS1, OUTPUT);
   pinMode(PIN_MS2, OUTPUT);
@@ -146,7 +146,7 @@ void setup(void)
   //Print info to Serial Monitor
 #if defined(__AVR_ATmega328P__) //Used for development
   Serial.begin(115200);
-  Serial.println("Qwiic Button");
+  Serial.println("Qwiic Step");
   Serial.print("Address: 0x");
   Serial.println(registerMap.i2cAddress, HEX);
   Serial.print("Device ID: 0x");
@@ -188,10 +188,10 @@ void loop(void) {
   //Update accelstepper functions
   if (updateFlag == true) {
     updateStepper();
-//    printState();
+    //    printState();
 
-//    //Record anything new to EEPROM
-//    recordSystemSettings();
+    //    //Record anything new to EEPROM
+    //    recordSystemSettings();
 
     //clear updateFlag
     updateFlag = false;
@@ -204,6 +204,8 @@ void loop(void) {
   }
 }
 
+//Determines the needed I2C address from NVM and starts as slave
+//Registers the receive and request I2C interrupt handlers
 void startI2C()
 {
   uint8_t address;
@@ -228,37 +230,36 @@ void startI2C()
 }
 
 void updateStepper() {
-//  //DBUGGING
-//  digitalWrite(DEBUG_PIN, HIGH);
-  
+  //  digitalWrite(DEBUG_PIN, HIGH);
+
   //call accelstepper functions with the values in registerMap
   //check if there is a new value for maxSpeed in registerMap
-  if (registerMapOld.maxSpeed != registerMap.maxSpeed){
+  if (registerMapOld.maxSpeed != registerMap.maxSpeed) {
     //if there is, update accelstepper library
     stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
     //update registerMapOld
     registerMapOld.maxSpeed = registerMap.maxSpeed;
   }
-  
-  if (registerMapOld.speed != registerMap.speed){
+
+  if (registerMapOld.speed != registerMap.speed) {
     stepper.setSpeed(convertToFloat(registerMap.speed));
-    registerMapOld.speed = registerMap.speed;  
+    registerMapOld.speed = registerMap.speed;
   }
-  
-  if (registerMapOld.acceleration != registerMap.acceleration){
+
+  if (registerMapOld.acceleration != registerMap.acceleration) {
     stepper.setAcceleration(convertToFloat(registerMap.acceleration));
     registerMapOld.acceleration = registerMap.acceleration;
   }
 
   //DEBUG: would this be the right way to service moveTo function?
-  if (registerMapOld.moveTo != registerMap.moveTo){
+  if (registerMapOld.moveTo != registerMap.moveTo) {
     stepper.moveTo(registerMap.moveTo);
     registerMapOld.moveTo = registerMap.moveTo;
   }
 
   //0xFFFFFFFF is an illegal value for move function
   //Helps us know when accelstepper move function has been serviced
-  if (registerMap.move != 0xFFFFFFFF){
+  if (registerMap.move != 0xFFFFFFFF) {
     stepper.move(registerMap.move);
     registerMap.move = 0xFFFFFFFF;
   }
@@ -268,8 +269,8 @@ void updateStepper() {
   digitalWrite(PIN_MS2, registerMap.motorConfig.ms2);
   digitalWrite(PIN_MS3, registerMap.motorConfig.ms3);
 
-//  //DEBUGGING
-//  digitalWrite(DEBUG_PIN, LOW);
+  //  //DEBUGGING
+  //  digitalWrite(DEBUG_PIN, LOW);
 
   //  if (registerMap.enableMoveNVM == 0x59) {
   //    recordSystemSettings(); //record registerMap to EEPROM?
@@ -279,15 +280,15 @@ void updateStepper() {
 
 //Update the status bits within the STATUS register
 void updateStatusBits() {
-  
+
   //check if we have made it to our target position
   if (stepper.targetPosition() == stepper.currentPosition()) {
-    
+
     //if this is our first "isReached" instance, set the interrupt flag
     if (registerMap.motorStatus.isReached == 0) {
       registerMap.interruptConfig.requestedPosReachedIntTriggered = 1;
     }
-    
+
     //motor has reached its destination
     registerMap.motorStatus.isReached = 1;
     //    if (registerMap.motorConfig.disableMotorPositionReached)
@@ -323,6 +324,8 @@ void updateStatusBits() {
 //  }
 //}
 
+//Prints the current register map
+//Note: some of these values are floating point so HEX printing will look odd.
 void printState() {
 #if defined(__AVR_ATmega328P__) //Used for development
   Serial.println();
@@ -391,35 +394,38 @@ void printState() {
   if (*(registerPointer + 0x14) < 0x10) Serial.print("0");
   Serial.println(*(registerPointer + 0x14), HEX);
 
-  Serial.print("Max Speed: 0x");
-  if (*(registerPointer + 0x1B) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x1B), HEX);
-  if (*(registerPointer + 0x1A) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x1A), HEX);
-  if (*(registerPointer + 0x19) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x19), HEX);
-  if (*(registerPointer + 0x18) < 0x10) Serial.print("0");
-  Serial.println(*(registerPointer + 0x18), HEX);
+  Serial.print("Max Speed: ");
+  Serial.println(convertToFloat(registerMap.maxSpeed), 2);
+//  if (*(registerPointer + 0x1B) < 0x10) Serial.print("0");
+//  Serial.print(*(registerPointer + 0x1B), HEX);
+//  if (*(registerPointer + 0x1A) < 0x10) Serial.print("0");
+//  Serial.print(*(registerPointer + 0x1A), HEX);
+//  if (*(registerPointer + 0x19) < 0x10) Serial.print("0");
+//  Serial.print(*(registerPointer + 0x19), HEX);
+//  if (*(registerPointer + 0x18) < 0x10) Serial.print("0");
+//  Serial.println(*(registerPointer + 0x18), HEX);
 
-  Serial.print("Acceleration: 0x");
-  if (*(registerPointer + 0x1F) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x1F), HEX);
-  if (*(registerPointer + 0x1E) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x1E), HEX);
-  if (*(registerPointer + 0x1D) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x1D), HEX);
-  if (*(registerPointer + 0x1C) < 0x10) Serial.print("0");
-  Serial.println(*(registerPointer + 0x1C), HEX);
+  Serial.print("Acceleration: ");
+  Serial.println(convertToFloat(registerMap.acceleration), 2);
+//  if (*(registerPointer + 0x1F) < 0x10) Serial.print("0");
+//  Serial.print(*(registerPointer + 0x1F), HEX);
+//  if (*(registerPointer + 0x1E) < 0x10) Serial.print("0");
+//  Serial.print(*(registerPointer + 0x1E), HEX);
+//  if (*(registerPointer + 0x1D) < 0x10) Serial.print("0");
+//  Serial.print(*(registerPointer + 0x1D), HEX);
+//  if (*(registerPointer + 0x1C) < 0x10) Serial.print("0");
+//  Serial.println(*(registerPointer + 0x1C), HEX);
 
-  Serial.print("Speed: 0x");
-  if (*(registerPointer + 0x23) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x23), HEX);
-  if (*(registerPointer + 0x22) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x22), HEX);
-  if (*(registerPointer + 0x21) < 0x10) Serial.print("0");
-  Serial.print(*(registerPointer + 0x21), HEX);
-  if (*(registerPointer + 0x20) < 0x10) Serial.print("0");
-  Serial.println(*(registerPointer + 0x20), HEX);
+  Serial.print("Speed: ");
+  Serial.println(convertToFloat(registerMap.speed), 2);
+//  if (*(registerPointer + 0x23) < 0x10) Serial.print("0");
+//  Serial.print(*(registerPointer + 0x23), HEX);
+//  if (*(registerPointer + 0x22) < 0x10) Serial.print("0");
+//  Serial.print(*(registerPointer + 0x22), HEX);
+//  if (*(registerPointer + 0x21) < 0x10) Serial.print("0");
+//  Serial.print(*(registerPointer + 0x21), HEX);
+//  if (*(registerPointer + 0x20) < 0x10) Serial.print("0");
+//  Serial.println(*(registerPointer + 0x20), HEX);
 
   Serial.print("Enable set speed: 0x");
   Serial.println(*(registerPointer + 0x24), HEX);
