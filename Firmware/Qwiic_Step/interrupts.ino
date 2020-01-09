@@ -47,22 +47,6 @@ void requestEvent()
   Wire.write((uint8_t*)(registerPointer + registerNumber), (len > TWI_BUFFER_LENGTH) ? TWI_BUFFER_LENGTH : len );
 }
 
-void limitSwitchTriggered()
-{
-  //update status of motor
-  //isLimited status depends on the state of the interrupt pin
-  registerMap.motorStatus.isLimited = !digitalRead(pin_interrupt1);   //take the inverse of the interrupt pin because it is pulled high
-
-  //stop the motor is user has configured it to
-  if (registerMap.motorConfig.stopOnLimitSwitchPress) {
-    //stop running motor
-    stepper.stop();
-  }
-
-//  if (registerMap.motorConfig.disableMotorPositionReached)
-//    stepper.disableOutputs();
-}
-
 void eStopTriggered()
 {
   //Stop the motor
@@ -103,4 +87,3 @@ void limitSwitchTriggered()
   if (registerMap.motorConfig.disableMotorPositionReached)
     stepper.disableOutputs();
 }
-
