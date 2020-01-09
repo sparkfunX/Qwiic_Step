@@ -40,7 +40,7 @@ const uint8_t pin_externalInterrupt = A1;
 volatile memoryMap registerMap {
   DEVICE_ID,           //id
   FIRMWARE_VERSION,    //firmware
-  {0, 0, 0, 0},        //interruptConfig {requestedPosReached, requestedPosReachedIntTriggered, limSwitchPressed, limSwitchPressedIntTriggered}
+  {0, 0, 0},           //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
   {0, 0, 0, 1, 0, 0},  //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
   {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
   {1, 0, 0, 0, 0},     //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
@@ -62,7 +62,7 @@ volatile memoryMap registerMap {
 volatile memoryMap registerMapOld {
   DEVICE_ID,           //id
   FIRMWARE_VERSION,    //firmware
-  {0, 0, 0, 0},        //interruptConfig {requestedPosReached, requestedPosReachedIntTriggered, limSwitchPressed, limSwitchPressedIntTriggered}
+  {0, 0, 0},           //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
   {0, 0, 0, 1, 0, 0},  //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
   {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
   {1, 0, 0, 0, 0},     //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
@@ -84,8 +84,9 @@ volatile memoryMap registerMapOld {
 memoryMap protectionMap = {
   0x00,               //id
   0x0000,             //firmware
-  {1, 1, 1, 1},       //interruptConfig {requestedPosReached, requestedPosReachedIntTriggered, limSwitchPressed, limSwitchPressedIntTriggered}
+  {1, 1, 1},          //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
   //DEBUGGING: should these all be read-only for motorStatus?
+  //DEBUG: isLimited is R/W for sure
   {1, 1, 1, 1, 1, 1}, //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
   {1, 1, 1, 1, 1},    //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
   {1, 1, 1, 1, 1},    //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
@@ -130,7 +131,7 @@ void setup(void)
   pinMode(pin_MS1, OUTPUT);
   pinMode(pin_MS2, OUTPUT);
   pinMode(pin_MS3, OUTPUT);
-  //Default to full step mode
+  //Default to full step mode for the motor
   digitalWrite(pin_MS1, LOW);
   digitalWrite(pin_MS2, LOW);
   digitalWrite(pin_MS3, LOW);
@@ -180,8 +181,7 @@ void loop(void) {
   //update external interrupt pin output
   //if an interrupt is triggered
   if ((registerMap.interruptConfig.requestedPosReachedEnable && registerMap.interruptConfig.requestedPosReachedIntTriggered)
-      //    ||(registerMap.interruptConfig.limSwitchPressedEnable && registerMap.motorStatus.isLimited)
-     )
+        ||(registerMap.interruptConfig.limSwitchPressedEnable && registerMap.motorStatus.isLimited))
   {
     Serial.println("Hello");
     //pull pin low
@@ -272,6 +272,11 @@ void updateStepper() {
     registerMap.move = 0xFFFFFFFF;
   }
 
+  if (registerMapOld.currentPos != registerMap.currentPos){
+    stepper.setCurrentPosition(registerMap.currentPos);
+    registerMapOld.currentPos = registerMap.currentPos;
+  }
+
   //update the step mode by flipping pins MS1, MS2, MS3
   digitalWrite(pin_MS1, registerMap.motorConfig.ms1);
   digitalWrite(pin_MS2, registerMap.motorConfig.ms2);
@@ -288,14 +293,34 @@ void updateStepper() {
 
 void updateMotorStatus() {
   
+  float currentSpeed = stepper.speed();
+
+  if (stepper.isRunning()){
+    registerMap.motorStatus.isRunning = 1;
+    if (previousSpeed < currentSpeed) {
+      registerMap.motorStatus.isAccelerating = 1;
+      registerMap.motorStatus.isDecelerating = 0;
+    }
+    else if (previousSpeed > currentSpeed) {
+      registerMap.motorStatus.isAccelerating = 0;
+      registerMap.motorStatus.isDecelerating = 1;
+    }
+  }
+  else {
+    registerMap.motorStatus.isRunning = 0;
+    registerMap.motorStatus.isAccelerating = 0;
+    registerMap.motorStatus.isDecelerating = 0;
+  }
+
+  //update previous speed
+  previousSpeed = currentSpeed;
+  
   //check if we have made it to our target position
   if (stepper.targetPosition() == stepper.currentPosition()) {
-    
     //if this is our first "isReached" instance, set the interrupt flag
     if (registerMap.motorStatus.isReached == 0) {
       registerMap.interruptConfig.requestedPosReachedIntTriggered = 1;
     }
-    
     //motor has reached its destination
     registerMap.motorStatus.isReached = 1;
     //    if (registerMap.motorConfig.disableMotorPositionReached)
