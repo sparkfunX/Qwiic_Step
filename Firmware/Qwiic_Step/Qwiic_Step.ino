@@ -159,8 +159,7 @@ void setup(void)
   attachInterrupt(digitalPinToInterrupt(PIN_INTERRUPT0), eStopTriggered, LOW);
   attachInterrupt(digitalPinToInterrupt(PIN_INTERRUPT1), limitSwitchTriggered, LOW);
 
-  //Determine the I2C address to be using and listen on I2C bus
-  startI2C(&registerMap);
+  startI2C(); //Determine the I2C address to be using and listen on I2C bus
 
   printState();
 }
@@ -205,24 +204,23 @@ void loop(void) {
   }
 }
 
-void startI2C(memoryMap *map)
+void startI2C()
 {
   uint8_t address;
 
-  //DEBUG: need to handle address jumper here. What is it supposed to do?
+  //TODO: Need to handle address jumper here.
 
-  //check if the address stored in memoryMap is valid
-  if (map->i2cAddress > 0x07 && map->i2cAddress < 0x78)
-    address = map->i2cAddress;
-  //if the value is illegal, default to the default I2C address for our platform
-  else
+  //Check if the address stored in memoryMap is valid
+  if (registerMap.i2cAddress > 0x07 && registerMap.i2cAddress < 0x78)
+    address = registerMap.i2cAddress;
+  else //If the value is illegal, default to the default I2C address for our platform
     address = DEFAULT_I2C_ADDRESS;
 
-  //save new address to the register map
-  map->i2cAddress = address;
+  //Save new address to the register map
+  registerMap.i2cAddress = address;
 
   Wire.end();
-  Wire.begin(address);  //rejoin the I2C bus on new address
+  Wire.begin(address);  //Rejoin the I2C bus on new address
 
   //Connect receive and request events to the interrupts
   Wire.onReceive(receiveEvent);
