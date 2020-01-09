@@ -38,7 +38,9 @@ void requestEvent()
   //DEBUG: doesn't the user have to clear this?!
   //update status of isLimited, what is the state of the interrupt pin?
   //will hopefully clear isLimited bit when limit switch is released
+
 //  registerMap.motorStatus.isLimited = !digitalRead(pin_interrupt0);   //take the inverse of the interrupt pin because it is pulled high
+
 
   //Write to I2C bus
   uint8_t len = (sizeof(memoryMap) - registerNumber);
@@ -85,3 +87,20 @@ void eStopTriggered()
   if (registerMap.motorConfig.disableMotorPositionReached)
     stepper.disableOutputs();
 }
+
+void limitSwitchTriggered()
+{
+  //update status of motor
+  //isLimited status depends on the state of the interrupt pin
+  registerMap.motorStatus.isLimited = !digitalRead(PIN_INTERRUPT0);   //take the inverse of the interrupt pin because it is pulled high
+
+  //stop the motor is user has configured it to
+  if (registerMap.motorConfig.stopOnLimitSwitchPress) {
+    //stop running motor
+    stepper.stop();
+  }
+
+  if (registerMap.motorConfig.disableMotorPositionReached)
+    stepper.disableOutputs();
+}
+
