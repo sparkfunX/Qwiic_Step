@@ -26,7 +26,7 @@ const uint8_t curr_sense = A6;    //DEBUG: right way to reference these pins?
 const uint8_t a49885_reset = A7;  //DEBUG: might not work... is pin only ADC input?
 const uint8_t PIN_INTERRUPT0 = 2; //E-Stop
 const uint8_t PIN_INTERRUPT1 = 3; //Limit switch
-const uint8_t PIN_INT_OUTPUT = A1;
+const uint8_t PIN_INT_OUTPUT = 11;
 #else //Used for development
 #define DEBUG_PIN 12
 const uint8_t PIN_STEP = 7;
@@ -36,13 +36,13 @@ const uint8_t PIN_MS2 = 5;
 const uint8_t PIN_MS3 = 6;
 const uint8_t PIN_INTERRUPT0 = 2; //E-stop
 const uint8_t PIN_INTERRUPT1 = 3; //Limit switch
-const uint8_t PIN_INT_OUTPUT = A1;
+const uint8_t PIN_INT_OUTPUT = 11;
 #endif
 
 volatile memoryMap registerMap{
     DEVICE_ID,           //id
     FIRMWARE_VERSION,    //firmware
-    {0, 0, 0},           //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
+    {0, 0},              //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
     {0, 0, 0, 1, 0, 0},  //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
     {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
     {1, 0, 0, 0, 0},     //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
@@ -64,8 +64,8 @@ volatile memoryMap registerMap{
 volatile memoryMap registerMapOld{
     DEVICE_ID,           //id
     FIRMWARE_VERSION,    //firmware
-    {0, 0, 0},           //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
-    {0, 0, 0, 1, 0, 0},  //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
+    {0, 0},              //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
+    {0, 0, 0, 0, 0, 0},  //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
     {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
     {1, 0, 0, 0, 0},     //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
     0x00000000,          //currentPos
@@ -84,9 +84,9 @@ volatile memoryMap registerMapOld{
 
 //This defines which of the registers are read-only (0) vs read-write (1)
 memoryMap protectionMap = {
-    0x00,      //id
-    0x0000,    //firmware
-    {1, 1, 1}, //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
+    0x00,   //id
+    0x0000, //firmware
+    {1, 1}, //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
     //DEBUGGING: should these all be read-only for motorStatus?
     //DEBUG: isLimited is R/W for sure
     {1, 1, 1, 1, 1, 1}, //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
@@ -109,13 +109,22 @@ memoryMap protectionMap = {
 //Cast 32bit address of the object registerMap with uint8_t so we can increment the pointer
 uint8_t *registerPointer = (uint8_t *)&registerMap;
 uint8_t *protectionPointer = (uint8_t *)&protectionMap;
-
 volatile uint8_t registerNumber; //Gets set when user writes an address. We then serve the spot the user requested.
 
-volatile boolean newData = false; //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
+//Interrupt turns on when position isReached, or limit switch is hit
+//Turns off when interrupts are cleared by command
+enum State
+{
+  STATE_ISREACHED_INT = 0,
+  STATE_ISLIMITED_INT,
+  STATE_INT_CLEARED,
+  STATE_INT_INDICATED,
+};
+volatile byte interruptState = STATE_INT_CLEARED;
 
-//temp variable to hold previous speed of motor to calculate its acceleration status
-float previousSpeed;
+volatile bool newData = false;  //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
+float previousSpeed;            //temp variable to hold previous speed of motor to calculate its acceleration status
+volatile bool hasMoved = false; //Tracks whether we have moved
 
 //Define a stepper and its pins
 AccelStepper stepper(AccelStepper::DRIVER, PIN_STEP, PIN_DIRECTION); //Stepper driver, 2 pins required
@@ -145,7 +154,8 @@ void setup(void)
 
   pinMode(PIN_INTERRUPT0, INPUT_PULLUP); //E-Stop
   pinMode(PIN_INTERRUPT1, INPUT_PULLUP); //Limit Switch
-  pinMode(PIN_INT_OUTPUT, OUTPUT);       //'INT' pin on board to indicate there is an interrupt
+
+  releaseInterruptPin();
 
   //Print info to Serial Monitor
 #ifndef PRODUCTION_TARGET
@@ -202,24 +212,41 @@ void loop(void)
   updateStatusBits();
 
   //Check to see if we need to drive interrupt pin
-  if ((registerMap.interruptConfig.requestedPosReachedEnable && registerMap.interruptConfig.requestedPosReachedIntTriggered) || (registerMap.interruptConfig.limSwitchPressedEnable && registerMap.motorStatus.isLimited))
-  {
-    Serial.println("INT pin driven low");
-
-    //Drive INT pin low
-    pinMode(PIN_INT_OUTPUT, OUTPUT);
-    digitalWrite(PIN_INT_OUTPUT, LOW);
-  }
-  else
-  {
-    //Go to high-impedance mode
-    pinMode(PIN_INT_OUTPUT, INPUT); //Pin has external pullup
-  }
+  updateInterruptPin();
 
   //If everything is good, continue running the stepper
   if (registerMap.motorStatus.eStopped == false)
   {
     stepper.run();
+  }
+}
+
+//Determines if we need to activate (ie pull down) the interrupt output pin
+//or if we need to release (set to high impedance) the pin
+void updateInterruptPin()
+{
+  //Interrupt pin state machine
+  //There are four states: isReached int, isLimited int, Int Cleared, Int Indicated
+  //ISREACHED_INT state is set here once user has stopped turning encoder
+  //ISLIMITED_INT state is set if button interrupt occurs
+  //INT_CLEARED state is set in the I2C interrupt when Clear Ints command is received.
+  //INT_INDICATED state is set once we change the INT pin to go low
+  if (interruptState == STATE_INT_CLEARED)
+  {
+    //If we have moved since the last interrupt, and we have reached the new position, then indicate interrupt
+    if (hasMoved == true && stepper.targetPosition() == stepper.currentPosition() && registerMap.interruptConfig.isReachedInterruptEnable)
+    {
+      Serial.println("isReached interrupt!");
+      interruptState = STATE_ISREACHED_INT; //Go to next state
+      hasMoved = false;                     //Block future interrupts until we move again
+    }
+  }
+
+  //If we are in either encoder or button interrupt state, then set INT low
+  if (interruptState == STATE_ISREACHED_INT || interruptState == STATE_ISLIMITED_INT)
+  {
+    Serial.println("INT pulled low");
+    setInterruptPin();
   }
 }
 
@@ -299,6 +326,13 @@ void updateStepper()
   digitalWrite(PIN_MS2, registerMap.motorConfig.ms2);
   digitalWrite(PIN_MS3, registerMap.motorConfig.ms3);
 
+  //Check to see if the user has cleared the isReached bit
+  if (registerMapOld.motorStatus.isReached == true && registerMap.motorStatus.isReached == false)
+  {
+    Serial.println("User cleared isReached");
+    registerMapOld.motorStatus.isReached = registerMap.motorStatus.isReached;
+  }
+
   //  //DEBUGGING
   //  digitalWrite(DEBUG_PIN, LOW);
 
@@ -316,47 +350,42 @@ void updateStatusBits()
 
   if (stepper.isRunning())
   {
-    registerMap.motorStatus.isRunning = 1;
+    hasMoved = true;
+
+    registerMap.motorStatus.isRunning = true;
+
     if (previousSpeed < currentSpeed)
     {
-      registerMap.motorStatus.isAccelerating = 1;
-      registerMap.motorStatus.isDecelerating = 0;
+      registerMap.motorStatus.isAccelerating = true;
+      registerMap.motorStatus.isDecelerating = false;
     }
     else if (previousSpeed > currentSpeed)
     {
-      registerMap.motorStatus.isAccelerating = 0;
-      registerMap.motorStatus.isDecelerating = 1;
+      registerMap.motorStatus.isAccelerating = false;
+      registerMap.motorStatus.isDecelerating = true;
+    }
+    else
+    {
+      registerMap.motorStatus.isAccelerating = false;
+      registerMap.motorStatus.isDecelerating = false;
     }
   }
   else
   {
-    registerMap.motorStatus.isRunning = 0;
-    registerMap.motorStatus.isAccelerating = 0;
-    registerMap.motorStatus.isDecelerating = 0;
+    registerMap.motorStatus.isRunning = false;
+    registerMap.motorStatus.isAccelerating = false;
+    registerMap.motorStatus.isDecelerating = false;
   }
 
   //update previous speed
   previousSpeed = currentSpeed;
 
-  //check if we have made it to our target position
-  if (stepper.targetPosition() == stepper.currentPosition())
-  {
-
-    //if this is our first "isReached" instance, set the interrupt flag
-    if (registerMap.motorStatus.isReached == 0)
-    {
-      registerMap.interruptConfig.requestedPosReachedIntTriggered = 1;
-    }
-
-    //motor has reached its destination
-    registerMap.motorStatus.isReached = 1;
-    //    if (registerMap.motorConfig.disableMotorPositionReached)
-    //      stepper.disableOutputs();
-  }
-  else
-  { //motor has not yet reached destination
-    registerMap.motorStatus.isReached = 0;
-  }
+  //Check if we have made it to our target position
+  // if (stepper.targetPosition() == stepper.currentPosition())
+  // {
+  //   registerMap.motorStatus.isReached = true;
+  //   //Serial.println("Arrived");
+  // } //We do not clear the isReached bit. The user must actively clear it which will clear the interrupt as well.
 }
 
 //void recordSystemSettings()

@@ -23,6 +23,17 @@ void receiveEvent(int numberOfBytesReceived)
       *(registerPointer + registerNumber + x) |= temp & *(protectionPointer + registerNumber + x); //Or in the user's request (clensed against protection bits)
     }
   }
+
+  //Check to see if we need to release the INT pin
+  if (interruptState == STATE_INT_INDICATED)
+  {
+    //If the user has cleared all the interrupt bits then clear interrupt pin
+    if (registerMap.motorStatus.isReached == 0)
+    {
+      Serial.println("INT cleared");
+      releaseInterruptPin();
+    }
+  }
 }
 
 //Respond to read commands
