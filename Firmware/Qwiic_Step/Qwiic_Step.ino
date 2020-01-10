@@ -11,18 +11,10 @@
 #define FIRMWARE_VERSION 0x0100
 #define DEFAULT_I2C_ADDRESS 0x52
 
+//#define PRODUCTION_TARGET 1 //Uncomment to use the production code
+
 //Hardware connections
-#if defined(__AVR_ATmega328P__) //Used for development
-#define DEBUG_PIN 12
-const uint8_t PIN_STEP = 7;
-const uint8_t PIN_DIRECTION = 8;
-const uint8_t PIN_MS1 = 4;
-const uint8_t PIN_MS2 = 5;
-const uint8_t PIN_MS3 = 6;
-const uint8_t PIN_INTERRUPT0 = 2;   //E-stop
-const uint8_t PIN_INTERRUPT1 = 3;   //Limit switch
-const uint8_t PIN_INT_OUTPUT = A1;
-#elif defined(__AVR_ATtiny84__) //Used in production
+#if defined(PRODUCTION_TARGET) //Used in production
 const uint8_t PIN_STEP = A3;
 const uint8_t PIN_DIRECTION = 6;
 const uint8_t PIN_MS1 = 9;
@@ -30,85 +22,95 @@ const uint8_t PIN_MS2 = 8;
 const uint8_t PIN_MS3 = 7;
 const uint8_t addressPin = 11;
 const uint8_t curr_ref_pwm = 5;
-const uint8_t curr_sense = A6;   //DEBUG: right way to reference these pins?
-const uint8_t a49885_reset = A7; //DEBUG: might not work... is pin only ADC input?
-const uint8_t PIN_INTERRUPT0 = 2;   //E-Stop
-const uint8_t PIN_INTERRUPT1 = 3;   //Limit switch
+const uint8_t curr_sense = A6;    //DEBUG: right way to reference these pins?
+const uint8_t a49885_reset = A7;  //DEBUG: might not work... is pin only ADC input?
+const uint8_t PIN_INTERRUPT0 = 2; //E-Stop
+const uint8_t PIN_INTERRUPT1 = 3; //Limit switch
+const uint8_t PIN_INT_OUTPUT = A1;
+#else //Used for development
+#define DEBUG_PIN 12
+const uint8_t PIN_STEP = 7;
+const uint8_t PIN_DIRECTION = 8;
+const uint8_t PIN_MS1 = 4;
+const uint8_t PIN_MS2 = 5;
+const uint8_t PIN_MS3 = 6;
+const uint8_t PIN_INTERRUPT0 = 2; //E-stop
+const uint8_t PIN_INTERRUPT1 = 3; //Limit switch
 const uint8_t PIN_INT_OUTPUT = A1;
 #endif
 
-volatile memoryMap registerMap {
-  DEVICE_ID,           //id
-  FIRMWARE_VERSION,    //firmware
-  {0, 0, 0},           //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
-  {0, 0, 0, 1, 0, 0},  //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
-  {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
-  {1, 0, 0, 0, 0},     //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
-  0x00000000,          //currentPos
-  0x00000000,          //distanceToGo
-  0x0FFFFFFF,          //move
-  0x00,                //enableMoveNVM
-  0x00000000,          //moveTo
-  0x00000000,          //maxSpeed (float)
-  0x00000000,          //acceleration (float)
-  0x00000000,          //speed (float)
-  0x00,                //enableSpeedNVM
-  0x0000,              //holdCurrent
-  0x0000,              //runCurrent
-  DEFAULT_I2C_ADDRESS, //i2cAddress
+volatile memoryMap registerMap{
+    DEVICE_ID,           //id
+    FIRMWARE_VERSION,    //firmware
+    {0, 0, 0},           //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
+    {0, 0, 0, 1, 0, 0},  //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
+    {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
+    {1, 0, 0, 0, 0},     //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
+    0x00000000,          //currentPos
+    0x00000000,          //distanceToGo
+    0x0FFFFFFF,          //move
+    0x00,                //enableMoveNVM
+    0x00000000,          //moveTo
+    0x00000000,          //maxSpeed (float)
+    0x00000000,          //acceleration (float)
+    0x00000000,          //speed (float)
+    0x00,                //enableSpeedNVM
+    0x0000,              //holdCurrent
+    0x0000,              //runCurrent
+    DEFAULT_I2C_ADDRESS, //i2cAddress
 };
 
 //this memory map holds temporary "old" values so we don't call accelstepper functions an unnecessary amount of times
-volatile memoryMap registerMapOld {
-  DEVICE_ID,           //id
-  FIRMWARE_VERSION,    //firmware
-  {0, 0, 0},           //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
-  {0, 0, 0, 1, 0, 0},  //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
-  {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
-  {1, 0, 0, 0, 0},     //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
-  0x00000000,          //currentPos
-  0x00000000,          //distanceToGo
-  0x00000000,          //move
-  0x00,                //enableMoveNVM
-  0x00000000,          //moveTo
-  0x00000000,          //maxSpeed (float)
-  0x00000000,          //acceleration (float)
-  0x00000000,          //speed (float)
-  0x00,                //enableSpeedNVM
-  0x0000,              //holdCurrent
-  0x0000,              //runCurrent
-  DEFAULT_I2C_ADDRESS, //i2cAddress
+volatile memoryMap registerMapOld{
+    DEVICE_ID,           //id
+    FIRMWARE_VERSION,    //firmware
+    {0, 0, 0},           //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
+    {0, 0, 0, 1, 0, 0},  //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
+    {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
+    {1, 0, 0, 0, 0},     //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
+    0x00000000,          //currentPos
+    0x00000000,          //distanceToGo
+    0x00000000,          //move
+    0x00,                //enableMoveNVM
+    0x00000000,          //moveTo
+    0x00000000,          //maxSpeed (float)
+    0x00000000,          //acceleration (float)
+    0x00000000,          //speed (float)
+    0x00,                //enableSpeedNVM
+    0x0000,              //holdCurrent
+    0x0000,              //runCurrent
+    DEFAULT_I2C_ADDRESS, //i2cAddress
 };
 
 //This defines which of the registers are read-only (0) vs read-write (1)
 memoryMap protectionMap = {
-  0x00,               //id
-  0x0000,             //firmware
-  {1, 1, 1},          //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
-  //DEBUGGING: should these all be read-only for motorStatus?
-  //DEBUG: isLimited is R/W for sure
-  {1, 1, 1, 1, 1, 1}, //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
-  {1, 1, 1, 1, 1},    //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
-  {1, 1, 1, 1, 1},    //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
-  0xFFFFFFFF,         //currentPos
-  0x00000000,         //distanceToGo
-  0xFFFFFFFF,         //move
-  0xFF,               //enableMoveNVM
-  0xFFFFFFFF,         //moveTo
-  0xFFFFFFFF,         //maxSpeed (float)
-  0xFFFFFFFF,         //acceleration (float)
-  0xFFFFFFFF,         //speed (float)
-  0xFF,               //enableSpeedNVM
-  0xFFFF,             //holdCurrent
-  0xFFFF,             //runCurrent
-  0xFF,               //i2cAddress
+    0x00,      //id
+    0x0000,    //firmware
+    {1, 1, 1}, //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
+    //DEBUGGING: should these all be read-only for motorStatus?
+    //DEBUG: isLimited is R/W for sure
+    {1, 1, 1, 1, 1, 1}, //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
+    {1, 1, 1, 1, 1},    //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
+    {1, 1, 1, 1, 1},    //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
+    0xFFFFFFFF,         //currentPos
+    0x00000000,         //distanceToGo
+    0xFFFFFFFF,         //move
+    0xFF,               //enableMoveNVM
+    0xFFFFFFFF,         //moveTo
+    0xFFFFFFFF,         //maxSpeed (float)
+    0xFFFFFFFF,         //acceleration (float)
+    0xFFFFFFFF,         //speed (float)
+    0xFF,               //enableSpeedNVM
+    0xFFFF,             //holdCurrent
+    0xFFFF,             //runCurrent
+    0xFF,               //i2cAddress
 };
 
 //Cast 32bit address of the object registerMap with uint8_t so we can increment the pointer
 uint8_t *registerPointer = (uint8_t *)&registerMap;
 uint8_t *protectionPointer = (uint8_t *)&protectionMap;
 
-volatile uint8_t registerNumber;  //Gets set when user writes an address. We then serve the spot the user requested.
+volatile uint8_t registerNumber; //Gets set when user writes an address. We then serve the spot the user requested.
 
 volatile boolean updateFlag = false; //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
 
@@ -120,7 +122,7 @@ AccelStepper stepper(AccelStepper::DRIVER, PIN_STEP, PIN_DIRECTION); //Stepper d
 
 void setup(void)
 {
-#if defined(__AVR_ATmega328P__) //Used for development
+#ifndef PRODUCTION_TARGET
   pinMode(DEBUG_PIN, OUTPUT);
   digitalWrite(DEBUG_PIN, LOW);
 #endif
@@ -141,12 +143,12 @@ void setup(void)
   //    pinMode(curr_sense, INPUT);
   //    pinMode(a49885_reset, OUTPUT);
 
-  pinMode(PIN_INTERRUPT0, INPUT_PULLUP);    //E-Stop
-  pinMode(PIN_INTERRUPT1, INPUT_PULLUP);    //Limit Switch
-  pinMode(PIN_INT_OUTPUT, OUTPUT); //'INT' pin on board to indicate there is an interrupt
+  pinMode(PIN_INTERRUPT0, INPUT_PULLUP); //E-Stop
+  pinMode(PIN_INTERRUPT1, INPUT_PULLUP); //Limit Switch
+  pinMode(PIN_INT_OUTPUT, OUTPUT);       //'INT' pin on board to indicate there is an interrupt
 
   //Print info to Serial Monitor
-#if defined(__AVR_ATmega328P__) //Used for development
+#ifndef PRODUCTION_TARGET
   Serial.begin(115200);
   Serial.println("Qwiic Step");
   Serial.print("Address: 0x");
@@ -166,14 +168,15 @@ void setup(void)
   printState();
 }
 
-void loop(void) {
+void loop(void)
+{
 
-#if defined(__AVR_ATmega328P__) //Used for development
-  if(Serial.available())
+#ifndef PRODUCTION_TARGET
+  if (Serial.available())
   {
     byte incoming = Serial.read();
 
-    if(incoming == 'p')
+    if (incoming == 'p')
     {
       printState();
     }
@@ -184,14 +187,13 @@ void loop(void) {
       Serial.println();
     }
   }
-  #endif
-  
+#endif
+
   //Compare current state and see if we need to update any isReached, etc bits
   updateStatusBits();
 
   //Check to see if we need to drive interrupt pin
-  if ((registerMap.interruptConfig.requestedPosReachedEnable && registerMap.interruptConfig.requestedPosReachedIntTriggered)
-        ||(registerMap.interruptConfig.limSwitchPressedEnable && registerMap.motorStatus.isLimited))
+  if ((registerMap.interruptConfig.requestedPosReachedEnable && registerMap.interruptConfig.requestedPosReachedIntTriggered) || (registerMap.interruptConfig.limSwitchPressedEnable && registerMap.motorStatus.isLimited))
   {
     Serial.println("INT pin driven low");
 
@@ -206,7 +208,8 @@ void loop(void) {
   }
 
   //Update accelstepper functions
-  if (updateFlag == true) {
+  if (updateFlag == true)
+  {
     updateStepper();
     //    printState();
 
@@ -242,49 +245,56 @@ void startI2C()
   registerMap.i2cAddress = address;
 
   Wire.end();
-  Wire.begin(address);  //Rejoin the I2C bus on new address
+  Wire.begin(address); //Rejoin the I2C bus on new address
 
   //Connect receive and request events to the interrupts
   Wire.onReceive(receiveEvent);
   Wire.onRequest(requestEvent);
 }
 
-void updateStepper() {
+void updateStepper()
+{
   //  digitalWrite(DEBUG_PIN, HIGH);
 
   //call accelstepper functions with the values in registerMap
   //check if there is a new value for maxSpeed in registerMap
-  if (registerMapOld.maxSpeed != registerMap.maxSpeed) {
+  if (registerMapOld.maxSpeed != registerMap.maxSpeed)
+  {
     //if there is, update accelstepper library
     stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
     //update registerMapOld
     registerMapOld.maxSpeed = registerMap.maxSpeed;
   }
 
-  if (registerMapOld.speed != registerMap.speed) {
+  if (registerMapOld.speed != registerMap.speed)
+  {
     stepper.setSpeed(convertToFloat(registerMap.speed));
     registerMapOld.speed = registerMap.speed;
   }
 
-  if (registerMapOld.acceleration != registerMap.acceleration) {
+  if (registerMapOld.acceleration != registerMap.acceleration)
+  {
     stepper.setAcceleration(convertToFloat(registerMap.acceleration));
     registerMapOld.acceleration = registerMap.acceleration;
   }
 
   //DEBUG: would this be the right way to service moveTo function?
-  if (registerMapOld.moveTo != registerMap.moveTo) {
+  if (registerMapOld.moveTo != registerMap.moveTo)
+  {
     stepper.moveTo(registerMap.moveTo);
     registerMapOld.moveTo = registerMap.moveTo;
   }
 
   //0xFFFFFFFF is an illegal value for move function
   //Helps us know when accelstepper move function has been serviced
-  if (registerMap.move != 0xFFFFFFFF) {
+  if (registerMap.move != 0xFFFFFFFF)
+  {
     stepper.move(registerMap.move);
     registerMap.move = 0xFFFFFFFF;
   }
 
-  if (registerMapOld.currentPos != registerMap.currentPos){
+  if (registerMapOld.currentPos != registerMap.currentPos)
+  {
     stepper.setCurrentPosition(registerMap.currentPos);
     registerMapOld.currentPos = registerMap.currentPos;
   }
@@ -303,27 +313,28 @@ void updateStepper() {
   //  }
 }
 
-
 //Update the status bits within the STATUS register
-void updateStatusBits() {
+void updateStatusBits()
+{
 
-
-
-  
   float currentSpeed = stepper.speed();
 
-  if (stepper.isRunning()){
+  if (stepper.isRunning())
+  {
     registerMap.motorStatus.isRunning = 1;
-    if (previousSpeed < currentSpeed) {
+    if (previousSpeed < currentSpeed)
+    {
       registerMap.motorStatus.isAccelerating = 1;
       registerMap.motorStatus.isDecelerating = 0;
     }
-    else if (previousSpeed > currentSpeed) {
+    else if (previousSpeed > currentSpeed)
+    {
       registerMap.motorStatus.isAccelerating = 0;
       registerMap.motorStatus.isDecelerating = 1;
     }
   }
-  else {
+  else
+  {
     registerMap.motorStatus.isRunning = 0;
     registerMap.motorStatus.isAccelerating = 0;
     registerMap.motorStatus.isDecelerating = 0;
@@ -331,23 +342,24 @@ void updateStatusBits() {
 
   //update previous speed
   previousSpeed = currentSpeed;
-  
+
   //check if we have made it to our target position
-  if (stepper.targetPosition() == stepper.currentPosition()) {
+  if (stepper.targetPosition() == stepper.currentPosition())
+  {
 
     //if this is our first "isReached" instance, set the interrupt flag
-    if (registerMap.motorStatus.isReached == 0) {
+    if (registerMap.motorStatus.isReached == 0)
+    {
       registerMap.interruptConfig.requestedPosReachedIntTriggered = 1;
     }
-
-
 
     //motor has reached its destination
     registerMap.motorStatus.isReached = 1;
     //    if (registerMap.motorConfig.disableMotorPositionReached)
     //      stepper.disableOutputs();
   }
-  else {  //motor has not yet reached destination
+  else
+  { //motor has not yet reached destination
     registerMap.motorStatus.isReached = 0;
   }
 }
@@ -379,17 +391,20 @@ void updateStatusBits() {
 
 //Prints the current register map
 //Note: some of these values are floating point so HEX printing will look odd.
-void printState() {
-#if defined(__AVR_ATmega328P__) //Used for development
+void printState()
+{
+#ifndef PRODUCTION_TARGET
   Serial.println();
 
   Serial.print("Register map id: 0x");
   Serial.println(*(registerPointer + 0), HEX);
 
   Serial.print("Firmware version: 0x");
-  if (*(registerPointer + 2) < 0x10) Serial.print("0");
+  if (*(registerPointer + 2) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 2), HEX);
-  if (*(registerPointer + 1) < 0x10) Serial.print("0");
+  if (*(registerPointer + 1) < 0x10)
+    Serial.print("0");
   Serial.println(*(registerPointer + 1), HEX);
 
   Serial.print("Interrupt enable: 0x");
@@ -405,94 +420,114 @@ void printState() {
   Serial.println(*(registerPointer + 6), HEX);
 
   Serial.print("Current position: 0x");
-  if (*(registerPointer + 0xA) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0xA) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 0xA), HEX);
-  if (*(registerPointer + 0x9) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0x9) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 0x9), HEX);
-  if (*(registerPointer + 0x8) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0x8) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 0x8), HEX);
-  if (*(registerPointer + 0x7) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0x7) < 0x10)
+    Serial.print("0");
   Serial.println(*(registerPointer + 0x7), HEX);
 
   Serial.print("Distance to go: 0x");
-  if (*(registerPointer + 0xE) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0xE) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 0xE), HEX);
-  if (*(registerPointer + 0xD) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0xD) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 0xD), HEX);
-  if (*(registerPointer + 0xC) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0xC) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 0xC), HEX);
-  if (*(registerPointer + 0xB) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0xB) < 0x10)
+    Serial.print("0");
   Serial.println(*(registerPointer + 0xB), HEX);
 
   Serial.print("Move: 0x");
-  if (*(registerPointer + 0x12) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0x12) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 0x12), HEX);
-  if (*(registerPointer + 0x11) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0x11) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 0x11), HEX);
-  if (*(registerPointer + 0x10) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0x10) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 0x10), HEX);
-  if (*(registerPointer + 0xF) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0xF) < 0x10)
+    Serial.print("0");
   Serial.println(*(registerPointer + 0xF), HEX);
 
   Serial.print("Enable move NVM: 0x");
   Serial.println(*(registerPointer + 0x13), HEX);
 
   Serial.print("Move to: 0x");
-  if (*(registerPointer + 0x17) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0x17) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 0x17), HEX);
-  if (*(registerPointer + 0x16) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0x16) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 0x16), HEX);
-  if (*(registerPointer + 0x15) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0x15) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 0x15), HEX);
-  if (*(registerPointer + 0x14) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0x14) < 0x10)
+    Serial.print("0");
   Serial.println(*(registerPointer + 0x14), HEX);
 
   Serial.print("Max Speed: ");
   Serial.println(convertToFloat(registerMap.maxSpeed), 2);
-//  if (*(registerPointer + 0x1B) < 0x10) Serial.print("0");
-//  Serial.print(*(registerPointer + 0x1B), HEX);
-//  if (*(registerPointer + 0x1A) < 0x10) Serial.print("0");
-//  Serial.print(*(registerPointer + 0x1A), HEX);
-//  if (*(registerPointer + 0x19) < 0x10) Serial.print("0");
-//  Serial.print(*(registerPointer + 0x19), HEX);
-//  if (*(registerPointer + 0x18) < 0x10) Serial.print("0");
-//  Serial.println(*(registerPointer + 0x18), HEX);
+  //  if (*(registerPointer + 0x1B) < 0x10) Serial.print("0");
+  //  Serial.print(*(registerPointer + 0x1B), HEX);
+  //  if (*(registerPointer + 0x1A) < 0x10) Serial.print("0");
+  //  Serial.print(*(registerPointer + 0x1A), HEX);
+  //  if (*(registerPointer + 0x19) < 0x10) Serial.print("0");
+  //  Serial.print(*(registerPointer + 0x19), HEX);
+  //  if (*(registerPointer + 0x18) < 0x10) Serial.print("0");
+  //  Serial.println(*(registerPointer + 0x18), HEX);
 
   Serial.print("Acceleration: ");
   Serial.println(convertToFloat(registerMap.acceleration), 2);
-//  if (*(registerPointer + 0x1F) < 0x10) Serial.print("0");
-//  Serial.print(*(registerPointer + 0x1F), HEX);
-//  if (*(registerPointer + 0x1E) < 0x10) Serial.print("0");
-//  Serial.print(*(registerPointer + 0x1E), HEX);
-//  if (*(registerPointer + 0x1D) < 0x10) Serial.print("0");
-//  Serial.print(*(registerPointer + 0x1D), HEX);
-//  if (*(registerPointer + 0x1C) < 0x10) Serial.print("0");
-//  Serial.println(*(registerPointer + 0x1C), HEX);
+  //  if (*(registerPointer + 0x1F) < 0x10) Serial.print("0");
+  //  Serial.print(*(registerPointer + 0x1F), HEX);
+  //  if (*(registerPointer + 0x1E) < 0x10) Serial.print("0");
+  //  Serial.print(*(registerPointer + 0x1E), HEX);
+  //  if (*(registerPointer + 0x1D) < 0x10) Serial.print("0");
+  //  Serial.print(*(registerPointer + 0x1D), HEX);
+  //  if (*(registerPointer + 0x1C) < 0x10) Serial.print("0");
+  //  Serial.println(*(registerPointer + 0x1C), HEX);
 
   Serial.print("Speed: ");
   Serial.println(convertToFloat(registerMap.speed), 2);
-//  if (*(registerPointer + 0x23) < 0x10) Serial.print("0");
-//  Serial.print(*(registerPointer + 0x23), HEX);
-//  if (*(registerPointer + 0x22) < 0x10) Serial.print("0");
-//  Serial.print(*(registerPointer + 0x22), HEX);
-//  if (*(registerPointer + 0x21) < 0x10) Serial.print("0");
-//  Serial.print(*(registerPointer + 0x21), HEX);
-//  if (*(registerPointer + 0x20) < 0x10) Serial.print("0");
-//  Serial.println(*(registerPointer + 0x20), HEX);
+  //  if (*(registerPointer + 0x23) < 0x10) Serial.print("0");
+  //  Serial.print(*(registerPointer + 0x23), HEX);
+  //  if (*(registerPointer + 0x22) < 0x10) Serial.print("0");
+  //  Serial.print(*(registerPointer + 0x22), HEX);
+  //  if (*(registerPointer + 0x21) < 0x10) Serial.print("0");
+  //  Serial.print(*(registerPointer + 0x21), HEX);
+  //  if (*(registerPointer + 0x20) < 0x10) Serial.print("0");
+  //  Serial.println(*(registerPointer + 0x20), HEX);
 
   Serial.print("Enable set speed: 0x");
   Serial.println(*(registerPointer + 0x24), HEX);
 
   Serial.print("Hold current: 0x");
-  if (*(registerPointer + 0x26) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0x26) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 0x26), HEX);
-  if (*(registerPointer + 0x25) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0x25) < 0x10)
+    Serial.print("0");
   Serial.println(*(registerPointer + 0x25), HEX);
 
   Serial.print("Run current: 0x");
-  if (*(registerPointer + 0x28) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0x28) < 0x10)
+    Serial.print("0");
   Serial.print(*(registerPointer + 0x28), HEX);
-  if (*(registerPointer + 0x27) < 0x10) Serial.print("0");
+  if (*(registerPointer + 0x27) < 0x10)
+    Serial.print("0");
   Serial.println(*(registerPointer + 0x27), HEX);
 
   Serial.print("I2C address: 0x");
