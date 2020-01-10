@@ -35,13 +35,6 @@ void receiveEvent(int numberOfBytesReceived)
 //Can only write 32 bytes at a time. Conditional takes care of cases where we write too many byte (memoryMap > 32 bytes)
 void requestEvent()
 {
-  //DEBUG: doesn't the user have to clear this?!
-  //update status of isLimited, what is the state of the interrupt pin?
-  //will hopefully clear isLimited bit when limit switch is released
-
-//  registerMap.motorStatus.isLimited = !digitalRead(pin_interrupt0);   //take the inverse of the interrupt pin because it is pulled high
-
-
   //Write to I2C bus
   uint8_t len = (sizeof(memoryMap) - registerNumber);
   Wire.write((uint8_t*)(registerPointer + registerNumber), (len > TWI_BUFFER_LENGTH) ? TWI_BUFFER_LENGTH : len );
@@ -52,11 +45,11 @@ void eStopTriggered()
   //Stop the motor
   stepper.stop();
 
-  //update status bit
-  //user needs to manually clear this bit for operations to continue after an e-stop event
+  //Update status bit
+  //User needs to manually clear this bit for operations to continue after an e-stop event
   registerMap.motorStatus.eStopped = true;
 
-  //call accelstepper library functions and update memoryMap accordingly
+  //Call accelstepper library functions and update memoryMap accordingly
   stepper.setSpeed(0);
   registerMap.speed = 0;
   registerMapOld.speed = 0;
@@ -67,23 +60,20 @@ void eStopTriggered()
   registerMap.acceleration = 0;
   registerMapOld.acceleration = 0;
 
-  //disable power if user has configured motor to do so
+  //Disable power if user has configured motor to do so
   if (registerMap.motorConfig.disableMotorPositionReached)
     stepper.disableOutputs();
 }
 
 void limitSwitchTriggered()
 {
-  //DEBUG:
-  Serial.println("Limit switch has been triggered");
-  //update status of motor
-  //isLimited status depends on the state of the interrupt pin
-//  registerMap.motorStatus.isLimited = !digitalRead(PIN_INTERRUPT1);   //take the inverse of the interrupt pin because it is pulled high
+  
+  //Update status of motor since limit switch has been pressed
   registerMap.motorStatus.isLimited = 1;
   
-  //stop the motor is user has configured it to
+  //Stop the motor is user has configured it to
   if (registerMap.motorConfig.stopOnLimitSwitchPress) {
-    //stop running motor
+    //Stop running motor
     stepper.stop();
   }
 

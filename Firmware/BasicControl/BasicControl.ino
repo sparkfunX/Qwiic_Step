@@ -39,18 +39,18 @@ void setup()
   setStepSize(STEP_SIZE_FULL);
 //  setStepSize(STEP_SIZE_SIXTEENTH);
 
-  stepper.setMaxSpeed(5000);
-  stepper.setSpeed(4000);
-  stepper.setAcceleration(1000);
+  stepper.setMaxSpeed(1000);
+  stepper.setSpeed(400);
+//  stepper.setAcceleration(1000);
 
-  stepper.move(400);
+//  stepper.move(400);
   
 }
 
 void loop()
 {
-  stepper.run();
-//  stepper.runSpeed();
+//  stepper.run();
+  stepper.runSpeed();
 
   //stepper.runToNewPosition(10000);
 }

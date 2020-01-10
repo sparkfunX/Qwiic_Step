@@ -220,7 +220,12 @@ void loop(void) {
   //If everything is good, continue running the stepper
   if (registerMap.motorStatus.eStopped == false)
   {
-    stepper.run();
+    if (registerMap.motorControl.run)
+      stepper.run();
+    else if (registerMap.motorControl.runSpeed)
+      stepper.runSpeed();
+    else if (registerMap.motorControl.runSpeedToPosition)
+      stepper.runSpeedToPosition();
   }
 }
 
@@ -307,9 +312,6 @@ void updateStepper() {
 //Update the status bits within the STATUS register
 void updateStatusBits() {
 
-
-
-  
   float currentSpeed = stepper.speed();
 
   if (stepper.isRunning()){
@@ -321,6 +323,11 @@ void updateStatusBits() {
     else if (previousSpeed > currentSpeed) {
       registerMap.motorStatus.isAccelerating = 0;
       registerMap.motorStatus.isDecelerating = 1;
+    }
+    //Scenario: running, but at constant speed
+    else if (previousSpeed == currentSpeed) {
+      registerMap.motorStatus.isAccelerating = 0;
+      registerMap.motorStatus.isDecelerating = 0;
     }
   }
   else {
