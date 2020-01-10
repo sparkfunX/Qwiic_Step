@@ -76,14 +76,15 @@ void limitSwitchTriggered()
 {
   //update status of motor
   //isLimited status depends on the state of the interrupt pin
-  registerMap.motorStatus.isLimited = !digitalRead(PIN_INTERRUPT0);   //take the inverse of the interrupt pin because it is pulled high
-
-  //stop the motor is user has configured it to
-  if (registerMap.motorConfig.stopOnLimitSwitchPress) {
-    //stop running motor
-    stepper.stop();
-  }
-
-  if (registerMap.motorConfig.disableMotorPositionReached)
-    stepper.disableOutputs();
+//  registerMap.motorStatus.isLimited = !digitalRead(PIN_INTERRUPT1);   //take the inverse of the interrupt pin because it is pulled high
+  registerMap.motorStatus.isLimited = 1;
+  
+//  //stop the motor is user has configured it to
+//  if (registerMap.motorConfig.stopOnLimitSwitchPress) {
+//    //stop running motor
+//    stepper.stop();
+//  }
+//
+//  if (registerMap.motorConfig.disableMotorPositionReached)
+//    stepper.disableOutputs();
 }

@@ -136,7 +136,6 @@ void setup(void)
   digitalWrite(PIN_MS2, LOW);
   digitalWrite(PIN_MS3, LOW);
 
-
   //    pinMode(addressPin, INPUT_PULLUP);
   //    pinMode(curr_ref_pwm, OUTPUT);
   //    pinMode(curr_sense, INPUT);
@@ -160,7 +159,8 @@ void setup(void)
 
   //Attach state-change of interrupt pins to corresponding ISRs
   attachInterrupt(digitalPinToInterrupt(PIN_INTERRUPT0), eStopTriggered, LOW);
-  attachInterrupt(digitalPinToInterrupt(PIN_INTERRUPT1), limitSwitchTriggered, LOW);
+  //DEBUG: should this actually be FALLING?? how do we expect this to work?
+  attachInterrupt(digitalPinToInterrupt(PIN_INTERRUPT1), limitSwitchTriggered, FALLING);
 
   startI2C(); //Determine the I2C address to be using and listen on I2C bus
 
