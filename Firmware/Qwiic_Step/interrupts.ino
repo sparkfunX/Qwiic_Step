@@ -4,15 +4,11 @@
 //When Qwiic button receives data bytes from Master this function is called as an interrupt
 //Adjusts memoryMap with incoming data bytes
 void receiveEvent(int numberOfBytesReceived)
-{    
-  registerNumber = Wire.read();  //Get the memory map offset from the user
+{
+  registerNumber = Wire.read(); //Get the memory map offset from the user
 
-  //DEBUGGING: need to clear this up...
-//  if (registerNumber == 0x07 || registerNumber == 0x0F || registerNumber == 0x14 || registerNumber == 0x18 || registerNumber == 0x1C || registerNumber == 0x20){
-    //set flag, we have to update state once the write has completed
-    updateFlag = true;
-//  }
-  
+  newData = true; //Tell the main loop there is new data to process.
+
   //Begin recording the following incoming bytes to the temp memory map
   //starting at the registerNumber (the first byte received)
   for (uint8_t x = 0; x < numberOfBytesReceived - 1; x++)
@@ -23,8 +19,8 @@ void receiveEvent(int numberOfBytesReceived)
     {
       //Clense the incoming byte against the read only protected bits
       //Store the result into the register map
-      *(registerPointer + registerNumber + x) &= ~*(protectionPointer + registerNumber + x);  //Clear this register if needed
-      *(registerPointer + registerNumber + x) |= temp & *(protectionPointer + registerNumber + x);  //Or in the user's request (clensed against protection bits)
+      *(registerPointer + registerNumber + x) &= ~*(protectionPointer + registerNumber + x);       //Clear this register if needed
+      *(registerPointer + registerNumber + x) |= temp & *(protectionPointer + registerNumber + x); //Or in the user's request (clensed against protection bits)
     }
   }
 }
@@ -39,12 +35,11 @@ void requestEvent()
   //update status of isLimited, what is the state of the interrupt pin?
   //will hopefully clear isLimited bit when limit switch is released
 
-//  registerMap.motorStatus.isLimited = !digitalRead(pin_interrupt0);   //take the inverse of the interrupt pin because it is pulled high
-
+  //  registerMap.motorStatus.isLimited = !digitalRead(pin_interrupt0);   //take the inverse of the interrupt pin because it is pulled high
 
   //Write to I2C bus
   uint8_t len = (sizeof(memoryMap) - registerNumber);
-  Wire.write((uint8_t*)(registerPointer + registerNumber), (len > TWI_BUFFER_LENGTH) ? TWI_BUFFER_LENGTH : len );
+  Wire.write((uint8_t *)(registerPointer + registerNumber), (len > TWI_BUFFER_LENGTH) ? TWI_BUFFER_LENGTH : len);
 }
 
 void eStopTriggered()
@@ -78,15 +73,16 @@ void limitSwitchTriggered()
   Serial.println("Limit switch has been triggered");
   //update status of motor
   //isLimited status depends on the state of the interrupt pin
-//  registerMap.motorStatus.isLimited = !digitalRead(PIN_INTERRUPT1);   //take the inverse of the interrupt pin because it is pulled high
+  //  registerMap.motorStatus.isLimited = !digitalRead(PIN_INTERRUPT1);   //take the inverse of the interrupt pin because it is pulled high
   registerMap.motorStatus.isLimited = 1;
-  
+
   //stop the motor is user has configured it to
-  if (registerMap.motorConfig.stopOnLimitSwitchPress) {
+  if (registerMap.motorConfig.stopOnLimitSwitchPress)
+  {
     //stop running motor
     stepper.stop();
   }
 
-//  if (registerMap.motorConfig.disableMotorPositionReached)
-//    stepper.disableOutputs();
+  //  if (registerMap.motorConfig.disableMotorPositionReached)
+  //    stepper.disableOutputs();
 }

@@ -112,7 +112,7 @@ uint8_t *protectionPointer = (uint8_t *)&protectionMap;
 
 volatile uint8_t registerNumber; //Gets set when user writes an address. We then serve the spot the user requested.
 
-volatile boolean updateFlag = false; //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
+volatile boolean newData = false; //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
 
 //temp variable to hold previous speed of motor to calculate its acceleration status
 float previousSpeed;
@@ -164,8 +164,6 @@ void setup(void)
   attachInterrupt(digitalPinToInterrupt(PIN_INTERRUPT1), limitSwitchTriggered, FALLING);
 
   startI2C(); //Determine the I2C address to be using and listen on I2C bus
-
-  printState();
 }
 
 void loop(void)
@@ -189,6 +187,17 @@ void loop(void)
   }
 #endif
 
+  if (newData == true)
+  {
+    updateStepper(); //Update accelstepper functions
+    //    printState();
+
+    //    //Record anything new to EEPROM
+    //    recordSystemSettings();
+
+    newData = false;
+  }
+
   //Compare current state and see if we need to update any isReached, etc bits
   updateStatusBits();
 
@@ -205,19 +214,6 @@ void loop(void)
   {
     //Go to high-impedance mode
     pinMode(PIN_INT_OUTPUT, INPUT); //Pin has external pullup
-  }
-
-  //Update accelstepper functions
-  if (updateFlag == true)
-  {
-    updateStepper();
-    //    printState();
-
-    //    //Record anything new to EEPROM
-    //    recordSystemSettings();
-
-    //clear updateFlag
-    updateFlag = false;
   }
 
   //If everything is good, continue running the stepper
@@ -252,17 +248,16 @@ void startI2C()
   Wire.onRequest(requestEvent);
 }
 
+//Called when there is new data from the user
+//Determine what's new by comparing new vs old and pass the
+//new values to the stepper library
 void updateStepper()
 {
   //  digitalWrite(DEBUG_PIN, HIGH);
 
-  //call accelstepper functions with the values in registerMap
-  //check if there is a new value for maxSpeed in registerMap
   if (registerMapOld.maxSpeed != registerMap.maxSpeed)
   {
-    //if there is, update accelstepper library
     stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
-    //update registerMapOld
     registerMapOld.maxSpeed = registerMap.maxSpeed;
   }
 
