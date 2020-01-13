@@ -133,10 +133,10 @@ enum MoveState
 };
 volatile byte moveState = MOVE_STATE_NOTMOVING_ISREACH_CLEARED;
 
-volatile bool newData = false;  //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
-float previousSpeed;            //temp variable to hold previous speed of motor to calculate its acceleration status
-volatile bool hasMoved = false; //Tracks whether we have moved
+volatile bool newData = false; //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
 volatile bool newMoveValue = false; //Goes true when user has written a new move value
+float previousSpeed; //Hold previous speed of motor to calculate its acceleration status
+unsigned long lastSpeedChange = 0; //Marks the time when previous speed last changed. Used to detect accel/deccel
 
 //Define a stepper and its pins
 AccelStepper stepper(AccelStepper::DRIVER, PIN_STEP, PIN_DIRECTION); //Stepper driver, 2 pins required
@@ -247,11 +247,10 @@ void updateInterruptPin()
   if (interruptState == INT_STATE_CLEARED)
   {
     //If we have moved since the last interrupt, and we have reached the new position, then indicate interrupt
-    if (hasMoved == true && stepper.targetPosition() == stepper.currentPosition() && registerMap.interruptConfig.isReachedInterruptEnable)
+    if (moveState == MOVE_STATE_NOTMOVING_ISREACH_SET && registerMap.interruptConfig.isReachedInterruptEnable)
     {
       Serial.println("isReached interrupt!");
       interruptState = INT_STATE_ISREACHED; //Go to next state
-      hasMoved = false;                     //Block future interrupts until we move again
     }
   }
 
@@ -375,8 +374,6 @@ void updateStatusBits()
 
   if (stepper.isRunning())
   {
-    hasMoved = true;
-
     registerMap.motorStatus.isRunning = true;
 
     //This doesn't work. The difference between old and new is often 0 during an accel/decel
@@ -401,9 +398,16 @@ void updateStatusBits()
     }
     else
     {
-      Serial.print(" 0 ");
-      registerMap.motorStatus.isAccelerating = false;
-      registerMap.motorStatus.isDecelerating = false;
+      //The previous speed is same as current speed
+      //But we may still be in the middle of a slow accel/decel
+      //This method checks to see if more than 100ms have gone by without change
+      //It's a bit brittle but I don't know of a better way
+      if (millis() - lastSpeedChange > 100)
+      {
+        Serial.print(" 0 ");
+        registerMap.motorStatus.isAccelerating = false;
+        registerMap.motorStatus.isDecelerating = false;
+      }
     }
     Serial.println();
   }
@@ -414,9 +418,11 @@ void updateStatusBits()
     registerMap.motorStatus.isDecelerating = false;
   }
 
-  //update previous speed
-  previousSpeed = currentSpeed;
-
+  if (previousSpeed != currentSpeed)
+  {
+    previousSpeed = currentSpeed;
+    lastSpeedChange = millis();
+  }
 
   //Handle the Move state machine
   //There are three states: MOVING, NOTMOVING_ISREACH_SET, NOTMOVING_ISREACH_CLEARED
