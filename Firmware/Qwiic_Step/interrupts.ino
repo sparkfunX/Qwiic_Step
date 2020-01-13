@@ -29,16 +29,16 @@ void receiveEvent(int numberOfBytesReceived)
   //We would need to move 400 steps, then another 400.
   //We also need to make sure the user is not sending us a 'read the Move register' command. So we check that the bytes received are greater
   //than 1.
-  if(registerNumber <= offsetof(struct memoryMap, move) && (registerNumber + numberOfBytesReceived) > (offsetof(struct memoryMap, move) + sizeof(registerMap.move)))
+  if (registerNumber <= offsetof(struct memoryMap, move) && (registerNumber + numberOfBytesReceived) > (offsetof(struct memoryMap, move) + sizeof(registerMap.move)))
   {
     newMoveValue = true;
   }
 
   //Check to see if we need to release the INT pin
-  if (interruptState == STATE_INT_INDICATED)
+  if (interruptState == INT_STATE_INDICATED)
   {
     //If the user has cleared all the interrupt bits then clear interrupt pin
-    if (registerMap.motorStatus.isReached == 0 && registerMap.motorStatus.isLimited == 0)
+    if (moveState == MOVE_STATE_NOTMOVING_ISREACH_CLEARED && registerMap.motorStatus.isLimited == 0)
     {
       Serial.println("INT cleared");
       releaseInterruptPin();
@@ -52,12 +52,6 @@ void receiveEvent(int numberOfBytesReceived)
 //Can only write 32 bytes at a time. Conditional takes care of cases where we write too many byte (memoryMap > 32 bytes)
 void requestEvent()
 {
-  //DEBUG: doesn't the user have to clear this?!
-  //update status of isLimited, what is the state of the interrupt pin?
-  //will hopefully clear isLimited bit when limit switch is released
-
-  //  registerMap.motorStatus.isLimited = !digitalRead(pin_interrupt0);   //take the inverse of the interrupt pin because it is pulled high
-
   //Write to I2C bus
   uint8_t len = (sizeof(memoryMap) - registerNumber);
   Wire.write((uint8_t *)(registerPointer + registerNumber), (len > TWI_BUFFER_LENGTH) ? TWI_BUFFER_LENGTH : len);
@@ -90,25 +84,28 @@ void eStopTriggered()
 
 void limitSwitchTriggered()
 {
-  Serial.println("Limit!");
-
-  registerMap.motorStatus.isLimited = true;
-
-  //Stop motor if option is enabled
-  if (registerMap.motorConfig.stopOnLimitSwitchPress == true)
+  Serial.print("&");
+  if (registerMap.motorStatus.isLimited == false)
   {
-    stepper.stop();
+    Serial.println("Limit!");
+
+    registerMap.motorStatus.isLimited = true;
+
+    //Stop motor if option is enabled
+    if (registerMap.motorConfig.stopOnLimitSwitchPress == true)
+    {
+      stepper.stop();
+    }
+
+    //TODO: Disable motor outputs if option enabled
+    //  if (registerMap.motorConfig.disableMotorPositionReached)
+    //    stepper.disableOutputs();
+
+    //Change interrupt handler state if necessary
+    if (interruptState == INT_STATE_CLEARED)
+    {
+      Serial.println("isLimited interrupt!");
+      interruptState = INT_STATE_ISLIMITED; //Go to next state
+    }
   }
-
-  //TODO: Disable motor outputs if option enabled
-  //  if (registerMap.motorConfig.disableMotorPositionReached)
-  //    stepper.disableOutputs();
-
-  //Change interrupt handler state if necessary
-  if (interruptState == STATE_INT_CLEARED)
-  {
-    Serial.println("isLimited interrupt!");
-    interruptState = STATE_ISLIMITED_INT; //Go to next state
-  }
-
 }

@@ -19,7 +19,7 @@ void releaseInterruptPin()
 {
   digitalWrite(PIN_INT_OUTPUT, LOW);  //Push pin to disable internal pull-ups
   pinMode(PIN_INT_OUTPUT, INPUT);     //Go to high impedance
-  interruptState = STATE_INT_CLEARED; //Go to next state
+  interruptState = INT_STATE_CLEARED; //Go to next state
 }
 
 void setInterruptPin()
@@ -27,5 +27,5 @@ void setInterruptPin()
   //Set the interrupt pin low to indicate interrupt
   pinMode(PIN_INT_OUTPUT, OUTPUT);
   digitalWrite(PIN_INT_OUTPUT, LOW);
-  interruptState = STATE_INT_INDICATED;
+  interruptState = INT_STATE_INDICATED;
 }
