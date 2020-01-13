@@ -219,6 +219,7 @@ void loop(void)
   if (registerMap.motorStatus.eStopped == false)
   {
     stepper.run();
+    //stepper.runSpeed();
   }
 }
 
@@ -285,18 +286,26 @@ void updateStepper()
 
   if (registerMapOld.maxSpeed != registerMap.maxSpeed)
   {
+    Serial.print("1");
     stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
     registerMapOld.maxSpeed = registerMap.maxSpeed;
   }
 
   if (registerMapOld.speed != registerMap.speed)
   {
-    stepper.setSpeed(convertToFloat(registerMap.speed));
+    Serial.print("2");
+    
+    //Calling .setSpeed with a value causes motor to twitch very slowly when we call .run. It shouldn't be. Libary bug?
+    //https://www.airspayce.com/mikem/arduino/AccelStepper/classAccelStepper.html#ae79c49ad69d5ccc9da0ee691fa4ca235
+    //We will need to avoid calling setSpeed if user wants to be in run mode
+    //We will need to call setSpeed if user wants to be in runSpeed mode
+    //stepper.setSpeed(convertToFloat(registerMap.speed)); 
     registerMapOld.speed = registerMap.speed;
   }
 
   if (registerMapOld.acceleration != registerMap.acceleration)
   {
+    Serial.print("3");
     stepper.setAcceleration(convertToFloat(registerMap.acceleration));
     registerMapOld.acceleration = registerMap.acceleration;
   }
@@ -304,19 +313,27 @@ void updateStepper()
   //DEBUG: would this be the right way to service moveTo function?
   if (registerMapOld.moveTo != registerMap.moveTo)
   {
-    stepper.moveTo(registerMap.moveTo);
+    Serial.print("$");
+    //stepper.moveTo(registerMap.moveTo);
     registerMapOld.moveTo = registerMap.moveTo;
   }
 
   //Move to new value if user has given us one
   if (newMoveValue == true)
   {
-    stepper.move(registerMap.move);
+    Serial.print("*");
+    
+    //Handle special stop command
+    if(registerMap.move == 0)
+      stepper.stop(); //Stop as quickly as possible
+    else
+      stepper.move(registerMap.move);
     newMoveValue = false;
   }
 
   if (registerMapOld.currentPos != registerMap.currentPos)
   {
+    Serial.print("4");
     stepper.setCurrentPosition(registerMap.currentPos);
     registerMapOld.currentPos = registerMap.currentPos;
   }

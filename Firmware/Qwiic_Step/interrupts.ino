@@ -27,7 +27,9 @@ void receiveEvent(int numberOfBytesReceived)
   //See if user has written a new Move value
   //Because Move is relative, we cannot simply tell by the value in the register. ie, the user might write 400, then 400 again.
   //We would need to move 400 steps, then another 400.
-  if(registerNumber > offsetof(struct memoryMap, move) && (registerNumber + numberOfBytesReceived) < offsetof(struct memoryMap, move))
+  //We also need to make sure the user is not sending us a 'read the Move register' command. So we check that the bytes received are greater
+  //than 1.
+  if(registerNumber <= offsetof(struct memoryMap, move) && (registerNumber + numberOfBytesReceived) > (offsetof(struct memoryMap, move) + sizeof(registerMap.move)))
   {
     newMoveValue = true;
   }
