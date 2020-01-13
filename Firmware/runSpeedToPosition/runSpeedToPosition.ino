@@ -1,4 +1,3 @@
-
 #include <AccelStepper.h>
 
 #define STEP 7
@@ -8,11 +7,9 @@
 #define MS2 5
 #define MS3 6
 
-#define CURRENT_REFERENCE 11 //PWM capapble pin
+AccelStepper stepper(AccelStepper::DRIVER, STEP, DIRECTION);  //Defaults to AccelStepper::FULL4WIRE
 
-AccelStepper stepper(AccelStepper::DRIVER, STEP, DIRECTION); // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5
-
-enum stepOptions {
+enum setOptions {
   STEP_SIZE_FULL = 0,
   STEP_SIZE_HALF,
   STEP_SIZE_QUARTER,
@@ -22,41 +19,23 @@ enum stepOptions {
 
 void setup()
 {
-  Serial.begin(9600);
-  Serial.println("SparkFun Stepper Example");
-
-  delay(5); //Wait for Easy Driver to wake up
-
-  //stepper.setEnablePin(ENABLE);
-  pinMode(ENABLE, OUTPUT);
-  digitalWrite(ENABLE, LOW);
-  //digitalWrite(ENABLE, HIGH);
-
   pinMode(MS1, OUTPUT);
   pinMode(MS2, OUTPUT);
   pinMode(MS3, OUTPUT);
 
   setStepSize(STEP_SIZE_FULL);
-//  setStepSize(STEP_SIZE_SIXTEENTH);
-
-  //Need speed settings for runSpeed()
-//  stepper.setMaxSpeed(1000);
-//  stepper.setSpeed(400);
-
-  //Need acceleration and move for run()
-  stepper.setAcceleration(1000);
-  stepper.move(200);
-
-  //No idea what I need for runSpeedToPosition()??
+  stepper.setMaxSpeed(1000);
 }
 
-void loop()
-{
-//  stepper.run();
-
-//  stepper.runSpeed();
-
-  //stepper.runToNewPosition(10000);
+void loop(){
+  stepper.moveTo(200);
+  stepper.setSpeed(200);
+//  if (stepper.distanceToGo() != 0) {
+    stepper.runSpeedToPosition();
+//  } else 
+//    delay(2000);  //Pause, then reset position and do it again
+//    stepper.setCurrentPosition(1);
+//  }
 }
 
 //Sets MS pins to user's input

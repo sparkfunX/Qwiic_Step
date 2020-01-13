@@ -208,7 +208,6 @@ void loop(void) {
   //Update accelstepper functions
   if (updateFlag == true) {
     updateStepper();
-    //    printState();
 
     //    //Record anything new to EEPROM
     //    recordSystemSettings();
@@ -220,12 +219,18 @@ void loop(void) {
   //If everything is good, continue running the stepper
   if (registerMap.motorStatus.eStopped == false)
   {
-    if (registerMap.motorControl.run)
+    if (registerMap.motorControl.run){
       stepper.run();
-    else if (registerMap.motorControl.runSpeed)
+    }
+    else if (registerMap.motorControl.runSpeed){
       stepper.runSpeed();
-    else if (registerMap.motorControl.runSpeedToPosition)
+    }
+    else if (registerMap.motorControl.runSpeedToPosition){
       stepper.runSpeedToPosition();
+    }
+    else if (registerMap.motorControl.stop){
+      stepper.stop();
+    }
   }
 }
 
@@ -308,7 +313,6 @@ void updateStepper() {
   //  }
 }
 
-
 //Update the status bits within the STATUS register
 void updateStatusBits() {
 
@@ -346,17 +350,18 @@ void updateStatusBits() {
     if (registerMap.motorStatus.isReached == 0) {
       registerMap.interruptConfig.requestedPosReachedIntTriggered = 1;
     }
-
-
-
     //motor has reached its destination
     registerMap.motorStatus.isReached = 1;
+    //Disable motor if user has configured to
     //    if (registerMap.motorConfig.disableMotorPositionReached)
     //      stepper.disableOutputs();
   }
   else {  //motor has not yet reached destination
     registerMap.motorStatus.isReached = 0;
   }
+
+  //update distanceToGo register here because we call this function everytime we loop
+  registerMap.distanceToGo = stepper.distanceToGo();
 }
 
 //void recordSystemSettings()
