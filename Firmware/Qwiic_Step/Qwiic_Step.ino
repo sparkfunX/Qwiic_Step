@@ -125,6 +125,7 @@ volatile byte interruptState = STATE_INT_CLEARED;
 volatile bool newData = false;  //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
 float previousSpeed;            //temp variable to hold previous speed of motor to calculate its acceleration status
 volatile bool hasMoved = false; //Tracks whether we have moved
+volatile bool newMoveValue = false; //Goes true when user has written a new move value
 
 //Define a stepper and its pins
 AccelStepper stepper(AccelStepper::DRIVER, PIN_STEP, PIN_DIRECTION); //Stepper driver, 2 pins required
@@ -228,7 +229,7 @@ void updateInterruptPin()
   //Interrupt pin state machine
   //There are four states: isReached int, isLimited int, Int Cleared, Int Indicated
   //ISREACHED_INT state is set here once user has stopped turning encoder
-  //ISLIMITED_INT state is set if button interrupt occurs
+  //ISLIMITED_INT state is set if limit switch interrupt occurs
   //INT_CLEARED state is set in the I2C interrupt when Clear Ints command is received.
   //INT_INDICATED state is set once we change the INT pin to go low
   if (interruptState == STATE_INT_CLEARED)
@@ -242,7 +243,7 @@ void updateInterruptPin()
     }
   }
 
-  //If we are in either encoder or button interrupt state, then set INT low
+  //If we are in either isReached or limit switch interrupt state, then set INT low
   if (interruptState == STATE_ISREACHED_INT || interruptState == STATE_ISLIMITED_INT)
   {
     Serial.println("INT pulled low");
@@ -307,12 +308,11 @@ void updateStepper()
     registerMapOld.moveTo = registerMap.moveTo;
   }
 
-  //0xFFFFFFFF is an illegal value for move function
-  //Helps us know when accelstepper move function has been serviced
-  if (registerMap.move != 0xFFFFFFFF)
+  //Move to new value if user has given us one
+  if (newMoveValue == true)
   {
     stepper.move(registerMap.move);
-    registerMap.move = 0xFFFFFFFF;
+    newMoveValue = false;
   }
 
   if (registerMapOld.currentPos != registerMap.currentPos)

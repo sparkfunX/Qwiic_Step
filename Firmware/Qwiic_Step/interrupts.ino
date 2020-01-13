@@ -1,7 +1,7 @@
 #define TWI_BUFFER_LENGTH BUFFER_LENGTH // this is because Arduino is dumb
 
 //Respond to write commands
-//When Qwiic button receives data bytes from Master this function is called as an interrupt
+//When board receives data bytes from Master this function is called as an interrupt
 //Adjusts memoryMap with incoming data bytes
 void receiveEvent(int numberOfBytesReceived)
 {
@@ -24,11 +24,19 @@ void receiveEvent(int numberOfBytesReceived)
     }
   }
 
+  //See if user has written a new Move value
+  //Because Move is relative, we cannot simply tell by the value in the register. ie, the user might write 400, then 400 again.
+  //We would need to move 400 steps, then another 400.
+  if(registerNumber > offsetof(struct memoryMap, move) && (registerNumber + numberOfBytesReceived) < offsetof(struct memoryMap, move))
+  {
+    newMoveValue = true;
+  }
+
   //Check to see if we need to release the INT pin
   if (interruptState == STATE_INT_INDICATED)
   {
     //If the user has cleared all the interrupt bits then clear interrupt pin
-    if (registerMap.motorStatus.isReached == 0)
+    if (registerMap.motorStatus.isReached == 0 && registerMap.motorStatus.isLimited == 0)
     {
       Serial.println("INT cleared");
       releaseInterruptPin();
@@ -80,20 +88,25 @@ void eStopTriggered()
 
 void limitSwitchTriggered()
 {
-  //DEBUG:
-  Serial.println("Limit switch has been triggered");
-  //update status of motor
-  //isLimited status depends on the state of the interrupt pin
-  //  registerMap.motorStatus.isLimited = !digitalRead(PIN_INTERRUPT1);   //take the inverse of the interrupt pin because it is pulled high
-  registerMap.motorStatus.isLimited = 1;
+  Serial.println("Limit!");
 
-  //stop the motor is user has configured it to
-  if (registerMap.motorConfig.stopOnLimitSwitchPress)
+  registerMap.motorStatus.isLimited = true;
+
+  //Stop motor if option is enabled
+  if (registerMap.motorConfig.stopOnLimitSwitchPress == true)
   {
-    //stop running motor
     stepper.stop();
   }
 
+  //TODO: Disable motor outputs if option enabled
   //  if (registerMap.motorConfig.disableMotorPositionReached)
   //    stepper.disableOutputs();
+
+  //Change interrupt handler state if necessary
+  if (interruptState == STATE_INT_CLEARED)
+  {
+    Serial.println("isLimited interrupt!");
+    interruptState = STATE_ISLIMITED_INT; //Go to next state
+  }
+
 }
