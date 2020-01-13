@@ -26,7 +26,7 @@ const uint8_t curr_sense = A6;    //DEBUG: right way to reference these pins?
 const uint8_t a49885_reset = A7;  //DEBUG: might not work... is pin only ADC input?
 const uint8_t PIN_INTERRUPT0 = 2; //E-Stop
 const uint8_t PIN_INTERRUPT1 = 3; //Limit switch
-const uint8_t PIN_INT_OUTPUT = 11;
+const uint8_t PIN_INT_OUTPUT = A1;
 #else //Used for development
 #define DEBUG_PIN 12
 const uint8_t PIN_STEP = 7;
@@ -36,7 +36,7 @@ const uint8_t PIN_MS2 = 5;
 const uint8_t PIN_MS3 = 6;
 const uint8_t PIN_INTERRUPT0 = 2; //E-stop
 const uint8_t PIN_INTERRUPT1 = 3; //Limit switch
-const uint8_t PIN_INT_OUTPUT = 11;
+const uint8_t PIN_INT_OUTPUT = A1;
 #endif
 
 volatile memoryMap registerMap{
