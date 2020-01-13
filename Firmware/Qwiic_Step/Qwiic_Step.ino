@@ -343,6 +343,7 @@ void updateStepper()
       stepper.move(registerMap.move);
     }
     moveState = MOVE_STATE_MOVING; //Change our state
+    registerMap.motorStatus.isReached = false;
     newMoveValue = false;
   }
 
@@ -376,23 +377,13 @@ void updateStatusBits()
   {
     registerMap.motorStatus.isRunning = true;
 
-    //This doesn't work. The difference between old and new is often 0 during an accel/decel
-    //because rounding? We should see an accel, then nothing, then a decel, then nothing, during a normal move command.
-
-    Serial.print("prev: ");
-    Serial.print(previousSpeed, 3);
-    Serial.print(" current: ");
-    Serial.print(currentSpeed, 3);
-
     if (previousSpeed < currentSpeed)
     {
-      Serial.print(" + ");
       registerMap.motorStatus.isAccelerating = true;
       registerMap.motorStatus.isDecelerating = false;
     }
     else if (previousSpeed > currentSpeed)
     {
-      Serial.print(" - ");
       registerMap.motorStatus.isAccelerating = false;
       registerMap.motorStatus.isDecelerating = true;
     }
@@ -400,16 +391,14 @@ void updateStatusBits()
     {
       //The previous speed is same as current speed
       //But we may still be in the middle of a slow accel/decel
-      //This method checks to see if more than 100ms have gone by without change
+      //This method checks to see if more than 250ms have gone by without change
       //It's a bit brittle but I don't know of a better way
-      if (millis() - lastSpeedChange > 100)
+      if (millis() - lastSpeedChange > 250)
       {
-        Serial.print(" 0 ");
         registerMap.motorStatus.isAccelerating = false;
         registerMap.motorStatus.isDecelerating = false;
       }
     }
-    Serial.println();
   }
   else
   {
@@ -448,9 +437,6 @@ void updateStatusBits()
     }
   }
 }
-
-
-
 
 //void recordSystemSettings()
 //{
