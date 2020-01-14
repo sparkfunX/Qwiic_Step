@@ -24,6 +24,7 @@ void releaseInterruptPin()
 
 void setInterruptPin()
 {
+  Serial.println("INT pulled low");
   //Set the interrupt pin low to indicate interrupt
   pinMode(PIN_INT_OUTPUT, OUTPUT);
   digitalWrite(PIN_INT_OUTPUT, LOW);

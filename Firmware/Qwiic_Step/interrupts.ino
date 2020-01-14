@@ -33,17 +33,6 @@ void receiveEvent(int numberOfBytesReceived)
   {
     newMoveValue = true;
   }
-
-  //Check to see if we need to release the INT pin
-  if (interruptState == INT_STATE_INDICATED)
-  {
-    //If the user has cleared all the interrupt bits then clear interrupt pin
-    if (moveState == MOVE_STATE_NOTMOVING_ISREACH_CLEARED && registerMap.motorStatus.isLimited == 0)
-    {
-      Serial.println("INT cleared");
-      releaseInterruptPin();
-    }
-  }
 }
 
 //Respond to read commands
@@ -82,14 +71,16 @@ void eStopTriggered()
     stepper.disableOutputs();
 }
 
+//ISR for Limit Switch Input
+//We enter different states of the limit state machine based on whether this is a rising or falling edge
 void limitSwitchTriggered()
 {
-  Serial.print("&");
-  if (registerMap.motorStatus.isLimited == false)
+  Serial.print("+");
+  if (limitState == LIMIT_STATE_NOT_LIMITED)
   {
-    Serial.println("Limit!");
-
     registerMap.motorStatus.isLimited = true;
+    limitState = LIMIT_STATE_LIMITED_SET;
+    Serial.println("Limit!");
 
     //Stop motor if option is enabled
     if (registerMap.motorConfig.stopOnLimitSwitchPress == true)
@@ -100,12 +91,5 @@ void limitSwitchTriggered()
     //TODO: Disable motor outputs if option enabled
     //  if (registerMap.motorConfig.disableMotorPositionReached)
     //    stepper.disableOutputs();
-
-    //Change interrupt handler state if necessary
-    if (interruptState == INT_STATE_CLEARED)
-    {
-      Serial.println("isLimited interrupt!");
-      interruptState = INT_STATE_ISLIMITED; //Go to next state
-    }
   }
 }

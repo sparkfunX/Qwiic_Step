@@ -24,8 +24,8 @@ const uint8_t addressPin = 11;
 const uint8_t curr_ref_pwm = 5;
 const uint8_t curr_sense = A6;    //DEBUG: right way to reference these pins?
 const uint8_t a49885_reset = A7;  //DEBUG: might not work... is pin only ADC input?
-const uint8_t PIN_INTERRUPT0 = 2; //E-Stop
-const uint8_t PIN_INTERRUPT1 = 3; //Limit switch
+const uint8_t PIN_ESTOP_SWITCH = 2; //E-Stop
+const uint8_t PIN_LIMIT_SWITCH = 3; //Limit switch
 const uint8_t PIN_INT_OUTPUT = A1;
 #else //Used for development
 #define DEBUG_PIN 12
@@ -34,8 +34,8 @@ const uint8_t PIN_DIRECTION = 8;
 const uint8_t PIN_MS1 = 4;
 const uint8_t PIN_MS2 = 5;
 const uint8_t PIN_MS3 = 6;
-const uint8_t PIN_INTERRUPT0 = 2; //E-stop
-const uint8_t PIN_INTERRUPT1 = 3; //Limit switch
+const uint8_t PIN_ESTOP_SWITCH = 2; //E-stop
+const uint8_t PIN_LIMIT_SWITCH = 3; //Limit switch
 const uint8_t PIN_INT_OUTPUT = A1;
 #endif
 
@@ -115,9 +115,7 @@ volatile uint8_t registerNumber; //Gets set when user writes an address. We then
 //Turns off when interrupts are cleared by command
 enum InterruptState
 {
-  INT_STATE_ISREACHED = 0,
-  INT_STATE_ISLIMITED,
-  INT_STATE_CLEARED,
+  INT_STATE_CLEARED = 0,
   INT_STATE_INDICATED,
 };
 volatile byte interruptState = INT_STATE_CLEARED;
@@ -132,6 +130,16 @@ enum MoveState
   MOVE_STATE_NOTMOVING_ISREACH_CLEARED,
 };
 volatile byte moveState = MOVE_STATE_NOTMOVING_ISREACH_CLEARED;
+
+//State machine for isLimited bit within status register
+//User clears the isLimited bit to clear the interrupt
+enum LimitState
+{
+  LIMIT_STATE_NOT_LIMITED = 0,
+  LIMIT_STATE_LIMITED_SET,
+  LIMIT_STATE_LIMITED_CLEARED,
+};
+volatile byte limitState = LIMIT_STATE_NOT_LIMITED;
 
 volatile bool newData = false; //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
 volatile bool newMoveValue = false; //Goes true when user has written a new move value
@@ -164,8 +172,8 @@ void setup(void)
   //    pinMode(curr_sense, INPUT);
   //    pinMode(a49885_reset, OUTPUT);
 
-  pinMode(PIN_INTERRUPT0, INPUT_PULLUP); //E-Stop
-  pinMode(PIN_INTERRUPT1, INPUT_PULLUP); //Limit Switch
+  pinMode(PIN_ESTOP_SWITCH, INPUT_PULLUP); //E-Stop
+  pinMode(PIN_LIMIT_SWITCH, INPUT_PULLUP); //Limit Switch
 
   releaseInterruptPin();
 
@@ -182,8 +190,8 @@ void setup(void)
   //  readSystemSettings(); //Load all system settings from EEPROM
 
   //Attach state-change of interrupt pins to corresponding ISRs
-  attachInterrupt(digitalPinToInterrupt(PIN_INTERRUPT0), eStopTriggered, LOW);
-  attachInterrupt(digitalPinToInterrupt(PIN_INTERRUPT1), limitSwitchTriggered, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PIN_ESTOP_SWITCH), eStopTriggered, LOW);
+  attachInterrupt(digitalPinToInterrupt(PIN_LIMIT_SWITCH), limitSwitchTriggered, FALLING);
 
   startI2C(); //Determine the I2C address to be using and listen on I2C bus
 }
@@ -238,27 +246,47 @@ void loop(void)
 //or if we need to release (set to high impedance) the pin
 void updateInterruptPin()
 {
+  //Check if limit switch is open
+  if (digitalRead(PIN_LIMIT_SWITCH) == HIGH)
+  {
+    if (limitState == LIMIT_STATE_LIMITED_CLEARED)
+    {
+      //Change states
+      limitState = LIMIT_STATE_NOT_LIMITED;
+      Serial.println("Limit released!");
+    }
+  }
+
   //Interrupt pin state machine
-  //There are four states: isReached int, isLimited int, Int Cleared, Int Indicated
-  //ISREACHED_INT state is set here once user has stopped turning encoder
-  //ISLIMITED_INT state is set if limit switch interrupt occurs
-  //INT_CLEARED state is set in the I2C interrupt when Clear Ints command is received.
-  //INT_INDICATED state is set once we change the INT pin to go low
+  //There are two states: Int Cleared, Int Indicated
+  //INT_INDICATED state is entered when either LIMIT_STATE_LIMITED_SET or MOVE_STATE_NOTMOVING_ISREACH_SET is satisfied
+  //INT_CLEARED state is entered when user clears the isReached and isLimited bits
   if (interruptState == INT_STATE_CLEARED)
   {
     //If we have moved since the last interrupt, and we have reached the new position, then indicate interrupt
     if (moveState == MOVE_STATE_NOTMOVING_ISREACH_SET && registerMap.interruptConfig.isReachedInterruptEnable)
     {
       Serial.println("isReached interrupt!");
-      interruptState = INT_STATE_ISREACHED; //Go to next state
+      setInterruptPin(); //Move to INT_STATE_INDICATED state
+    }
+    if (limitState == LIMIT_STATE_LIMITED_SET && registerMap.interruptConfig.isLimitedInterruptEnable)
+    {
+      Serial.println("isLimited interrupt!");
+      setInterruptPin(); //Move to INT_STATE_INDICATED state
     }
   }
-
-  //If we are in either isReached or limit switch interrupt state, then set INT low
-  if (interruptState == INT_STATE_ISREACHED || interruptState == INT_STATE_ISLIMITED)
+  //Check to see if we need to release the INT pin
+  else if (interruptState == INT_STATE_INDICATED)
   {
-    Serial.println("INT pulled low");
-    setInterruptPin();
+    //If the user has cleared all the interrupt bits, or if we are moving and limit switch is not depressed
+    //then clear interrupt pin
+    if ( (moveState == MOVE_STATE_NOTMOVING_ISREACH_CLEARED || moveState == MOVE_STATE_MOVING)
+        && (limitState == LIMIT_STATE_LIMITED_CLEARED || limitState == LIMIT_STATE_NOT_LIMITED)
+       )
+    {
+      Serial.println("INT High");
+      releaseInterruptPin(); //Move to INT_STATE_CLEARED state
+    }
   }
 }
 
@@ -434,6 +462,15 @@ void updateStatusBits()
     {
       moveState = MOVE_STATE_NOTMOVING_ISREACH_CLEARED;
       Serial.println("User cleared isReached");
+    }
+  }
+
+  if (limitState == LIMIT_STATE_LIMITED_SET)
+  {
+    if (registerMap.motorStatus.isLimited == false)
+    {
+      limitState = LIMIT_STATE_LIMITED_CLEARED;
+      Serial.println("User cleared isLimited");
     }
   }
 }
