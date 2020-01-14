@@ -25,17 +25,13 @@ void setup()
 
   setStepSize(STEP_SIZE_FULL);
   stepper.setMaxSpeed(1000);
+
+  stepper.move(200);
+  stepper.setSpeed(200);
 }
 
 void loop(){
-  stepper.moveTo(200);
-  stepper.setSpeed(200);
-//  if (stepper.distanceToGo() != 0) {
-    stepper.runSpeedToPosition();
-//  } else 
-//    delay(2000);  //Pause, then reset position and do it again
-//    stepper.setCurrentPosition(1);
-//  }
+  stepper.runSpeedToPosition();
 }
 
 //Sets MS pins to user's input

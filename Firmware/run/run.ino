@@ -1,18 +1,11 @@
-/*
-
-
- The stepper has 1.8 degrees per step or 200 steps per full rotation.
- 
- */
-
 #include <AccelStepper.h>
 
 #define STEP 7
 #define DIRECTION 8
 #define ENABLE 10
-#define MS1 2
-#define MS2 3
-#define MS3 4
+#define MS1 4
+#define MS2 5
+#define MS3 6
 
 #define CURRENT_REFERENCE 11 //PWM capapble pin
 
@@ -35,35 +28,26 @@ void setup()
 
   //stepper.setEnablePin(ENABLE);
   pinMode(ENABLE, OUTPUT);
-  digitalWrite(ENABLE, LOW);
-  //digitalWrite(ENABLE, HIGH);
+  //digitalWrite(ENABLE, LOW);
+  digitalWrite(ENABLE, HIGH);
 
   pinMode(MS1, OUTPUT);
   pinMode(MS2, OUTPUT);
   pinMode(MS3, OUTPUT);
 
-  //setStepSize(STEP_SIZE_FULL);
-  //setStepSize(STEP_SIZE_HALF);
-  //setStepSize(STEP_SIZE_QUARTER);
-  //setStepSize(STEP_SIZE_EIGHTH);
-  setStepSize(STEP_SIZE_SIXTEENTH);
+  setStepSize(STEP_SIZE_FULL);
+    //setStepSize(STEP_SIZE_SIXTEENTH);
 
-  stepper.setMaxSpeed(10000);
-  stepper.setAcceleration(10000);
+  stepper.setMaxSpeed(1000); //Required but no upper limit
+  //stepper.setSpeed(400); //Not required
+  stepper.setAcceleration(500); //Upper limit of ~500 before ATmega starts missing steps
 
-  //stepper.moveTo(-800 * 4); //Clockwise one rotation
-  stepper.moveTo(-800 * 4 * 4); //Clockwise 4 rotations
-  //stepper.moveTo(-128000); //Clockwise 40 rotations
-  stepper.runToPosition();
-  //stepper.moveTo(32000); //Clockwise 40 rotations
-  //stepper.runToPosition();
-
-  digitalWrite(ENABLE, HIGH); //Disable output
+  stepper.move(4 * 200);
 }
 
 void loop()
 {
-  //stepper.run();
+  stepper.run();
 }
 
 //Sets MS pins to user's input
@@ -102,4 +86,5 @@ void setStepSize(uint8_t stepSize)
       digitalWrite(MS3, HIGH);
       break;
   }
+
 }
