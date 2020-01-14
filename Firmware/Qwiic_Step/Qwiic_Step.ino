@@ -366,7 +366,7 @@ void updateStepper()
       //Calling .setSpeed with a value causes motor to twitch very slowly when we call .run. It shouldn't be. Libary bug?
       //https://www.airspayce.com/mikem/arduino/AccelStepper/classAccelStepper.html#ae79c49ad69d5ccc9da0ee691fa4ca235
       stepper.setSpeed(convertToFloat(registerMap.speed));
-      delay(1); //Removing this delay causes the speed not to get stored correctly into library in runSpeed mode. I cannot explain why.
+      //delay(1); //Removing this delay causes the speed not to get stored correctly into library in runSpeed mode. I cannot explain why.
 
       //      Serial.print(stepper.speed());
       //      Serial.print(" ");
