@@ -363,7 +363,7 @@ void updateStepper()
     if (registerMap.move == 0)
     {
       Serial.print("!");
-      stepper.stop(); //Stop as quickly as possible
+      stepper.stop(); //Drift to a stop as quickly as possible, using the current speed and acceleration parameters.
     }
     else
     {
