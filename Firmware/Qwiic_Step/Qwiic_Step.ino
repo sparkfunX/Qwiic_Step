@@ -16,6 +16,7 @@
 //Hardware connections
 #if defined(PRODUCTION_TARGET) //Used in production
 const uint8_t PIN_STEP = A3;
+const uint8_t PIN_ENABLE = 10;
 const uint8_t PIN_DIRECTION = 6;
 const uint8_t PIN_MS1 = 9;
 const uint8_t PIN_MS2 = 8;
@@ -27,10 +28,12 @@ const uint8_t a49885_reset = A7;  //DEBUG: might not work... is pin only ADC inp
 const uint8_t PIN_ESTOP_SWITCH = 2; //E-Stop
 const uint8_t PIN_LIMIT_SWITCH = 3; //Limit switch
 const uint8_t PIN_INT_OUTPUT = A1;
+//We need an enable pin
 #else //Used for development
 #define DEBUG_PIN 12
 const uint8_t PIN_STEP = 7;
 const uint8_t PIN_DIRECTION = 8;
+const uint8_t PIN_ENABLE = 10;
 const uint8_t PIN_MS1 = 4;
 const uint8_t PIN_MS2 = 5;
 const uint8_t PIN_MS3 = 6;
@@ -48,7 +51,7 @@ volatile memoryMap registerMap {
   {1, 0, 0, 0, 0},     //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
   0x00000000,          //currentPos
   0x00000000,          //distanceToGo
-  0x0FFFFFFF,          //move
+  0x00000000,          //move
   0x00,                //enableMoveNVM
   0x00000000,          //moveTo
   0x00000000,          //maxSpeed (float)
@@ -175,6 +178,10 @@ void setup(void)
   pinMode(PIN_ESTOP_SWITCH, INPUT_PULLUP); //E-Stop
   pinMode(PIN_LIMIT_SWITCH, INPUT_PULLUP); //Limit Switch
 
+  stepper.setEnablePin(PIN_ENABLE);
+  stepper.setPinsInverted(false, false, true); //Invert enable
+  stepper.enableOutputs();
+
   releaseInterruptPin();
 
   //Print info to Serial Monitor
@@ -198,7 +205,6 @@ void setup(void)
 
 void loop(void)
 {
-
 #ifndef PRODUCTION_TARGET
   if (Serial.available())
   {
@@ -223,7 +229,7 @@ void loop(void)
     newData = false;
   }
 
-  //Update register map with latest values from accel stepper library and 
+  //Update register map with latest values from accel stepper library and
   //any state machine changes (isReached, etc bits)
   updateRegisterMap();
 
@@ -237,6 +243,10 @@ void loop(void)
       stepper.run();
     }
     else if (registerMap.motorControl.runSpeed) {
+      //Serial.println(stepper.speed());
+//      //stepper.setMaxSpeed(1000.3);
+//      stepper.setSpeed(200.3);
+//      while(1)
       stepper.runSpeed();
     }
     else if (registerMap.motorControl.runSpeedToPosition) {
@@ -343,7 +353,10 @@ void updateStepper()
     //https://www.airspayce.com/mikem/arduino/AccelStepper/classAccelStepper.html#ae79c49ad69d5ccc9da0ee691fa4ca235
     //We will need to avoid calling setSpeed if user wants to be in run mode
     //We will need to call setSpeed if user wants to be in runSpeed mode
-    //stepper.setSpeed(convertToFloat(registerMap.speed));
+    stepper.setSpeed(convertToFloat(registerMap.speed));
+    delay(1); //Removing this delay causes the speed not to get stored correctly into library. I cannot explain why.
+    Serial.println(convertToFloat(registerMap.speed));
+    Serial.println(stepper.speed());
     registerMapOld.speed = registerMap.speed;
   }
 
@@ -388,10 +401,20 @@ void updateStepper()
     registerMapOld.currentPos = registerMap.currentPos;
   }
 
-  //update the step mode by flipping pins MS1, MS2, MS3
-  digitalWrite(PIN_MS1, registerMap.motorConfig.ms1);
-  digitalWrite(PIN_MS2, registerMap.motorConfig.ms2);
-  digitalWrite(PIN_MS3, registerMap.motorConfig.ms3);
+  if (registerMapOld.motorConfig.ms1 != registerMap.motorConfig.ms1
+      || registerMapOld.motorConfig.ms2 != registerMap.motorConfig.ms2
+      || registerMapOld.motorConfig.ms3 != registerMap.motorConfig.ms3
+     )
+  {
+    //update the step mode by flipping pins MS1, MS2, MS3
+    digitalWrite(PIN_MS1, registerMap.motorConfig.ms1);
+    digitalWrite(PIN_MS2, registerMap.motorConfig.ms2);
+    digitalWrite(PIN_MS3, registerMap.motorConfig.ms3);
+
+    registerMapOld.motorConfig.ms1 = registerMap.motorConfig.ms1;
+    registerMapOld.motorConfig.ms2 = registerMap.motorConfig.ms2;
+    registerMapOld.motorConfig.ms3 = registerMap.motorConfig.ms3;
+  }
 
   //  //DEBUGGING
   //  digitalWrite(DEBUG_PIN, LOW);
@@ -406,7 +429,7 @@ void updateStepper()
 void updateRegisterMap()
 {
   registerMap.distanceToGo = stepper.distanceToGo();
-  
+
   float currentSpeed = stepper.speed();
 
   if (stepper.isRunning())
@@ -535,9 +558,14 @@ void printState()
   Serial.print("Device config: 0x");
   Serial.println(*(registerPointer + 5), HEX);
 
-  Serial.print("Device control: 0x");
-  Serial.println(*(registerPointer + 6), HEX);
-
+  Serial.print("Motor config: ");
+  if(registerMap.motorControl.run == true) Serial.print("run");
+  else if(registerMap.motorControl.runSpeed == true) Serial.print("runSpeed");
+  else if(registerMap.motorControl.runSpeedToPosition == true) Serial.print("runSpeedToPosition");
+  else if(registerMap.motorControl.stop == true) Serial.print("stop");
+  Serial.println();
+  //Serial.println(*(registerPointer + 6), HEX);
+  
   Serial.print("Current position: 0x");
   if (*(registerPointer + 0xA) < 0x10)
     Serial.print("0");
