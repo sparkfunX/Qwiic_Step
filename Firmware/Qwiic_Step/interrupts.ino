@@ -31,6 +31,7 @@ void receiveEvent(int numberOfBytesReceived)
   //than 1.
   if (registerNumber <= offsetof(struct memoryMap, move) && (registerNumber + numberOfBytesReceived) > (offsetof(struct memoryMap, move) + sizeof(registerMap.move)))
   {
+    Serial.print("~");
     newMoveValue = true;
   }
 }

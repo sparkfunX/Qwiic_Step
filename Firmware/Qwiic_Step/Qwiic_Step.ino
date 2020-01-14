@@ -355,15 +355,24 @@ void updateStepper()
   //so the speed check is done after the move check.
   //The stepper library will change the current speed as needed
   //We can't check against the old map, we have to check against the current speed.
-  if (stepper.speed() != registerMap.speed)
+  if (stepper.speed() != convertToFloat(registerMap.speed))
   {
-    Serial.print("P");
+    //We only allow user to set the speed if we are in runToPosition or runContinuous mode
+    //In runToPositionWithAccel mode the library will calculate the speed automatically
+    if (registerMap.motorControl.runToPosition || registerMap.motorControl.runContinuous)
+    {
+      Serial.print("P");
 
-    //Calling .setSpeed with a value causes motor to twitch very slowly when we call .run. It shouldn't be. Libary bug?
-    //https://www.airspayce.com/mikem/arduino/AccelStepper/classAccelStepper.html#ae79c49ad69d5ccc9da0ee691fa4ca235
-    stepper.setSpeed(convertToFloat(registerMap.speed));
-    delay(1); //Removing this delay causes the speed not to get stored correctly into library in runSpeed mode. I cannot explain why.
-    registerMapOld.speed = registerMap.speed;
+      //Calling .setSpeed with a value causes motor to twitch very slowly when we call .run. It shouldn't be. Libary bug?
+      //https://www.airspayce.com/mikem/arduino/AccelStepper/classAccelStepper.html#ae79c49ad69d5ccc9da0ee691fa4ca235
+      stepper.setSpeed(convertToFloat(registerMap.speed));
+      delay(1); //Removing this delay causes the speed not to get stored correctly into library in runSpeed mode. I cannot explain why.
+
+      //      Serial.print(stepper.speed());
+      //      Serial.print(" ");
+      //      Serial.println(convertToFloat(registerMap.speed));
+      registerMapOld.speed = registerMap.speed;
+    }
   }
 
   if (registerMapOld.currentPos != registerMap.currentPos)
@@ -404,7 +413,10 @@ void updateRegisterMap()
 
   float currentSpeed = stepper.speed();
 
-  if (stepper.isRunning())
+  //If mode is runToPosition, speed will be set and isRunning is true no matter
+  //what even after we've arrived at the position.
+  //if (stepper.isRunning()) //Doesn't work in runToPosition mode
+  if (stepper.targetPosition() != stepper.currentPosition())
   {
     registerMap.motorStatus.isRunning = true;
 
