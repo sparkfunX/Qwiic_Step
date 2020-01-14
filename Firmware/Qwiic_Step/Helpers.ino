@@ -84,9 +84,9 @@ void printState()
   Serial.println(*(registerPointer + 5), HEX);
 
   Serial.print("Motor config: ");
-  if (registerMap.motorControl.run == true) Serial.print("run");
-  else if (registerMap.motorControl.runSpeed == true) Serial.print("runSpeed");
-  else if (registerMap.motorControl.runSpeedToPosition == true) Serial.print("runSpeedToPosition");
+  if (registerMap.motorControl.runToPosition == true) Serial.print("runToPos");
+  else if (registerMap.motorControl.runToPositionWithAccel == true) Serial.print("runToPosWithAccel");
+  else if (registerMap.motorControl.runContinuous == true) Serial.print("runContinuous");
   else if (registerMap.motorControl.hardStop == true) Serial.print("stop");
   Serial.println();
   //Serial.println(*(registerPointer + 6), HEX);

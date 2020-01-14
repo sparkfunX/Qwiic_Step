@@ -38,9 +38,9 @@ typedef union {
 typedef union {
   struct
   {
-    bool run : 1;
-    bool runSpeed : 1;
-    bool runSpeedToPosition : 1;
+    bool runToPosition : 1;
+    bool runToPositionWithAccel : 1;
+    bool runContinuous : 1;
     bool hardStop : 1;
     bool disableMotor : 1;
     bool : 3;

@@ -48,7 +48,7 @@ volatile memoryMap registerMap {
   {0, 0},              //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
   {0, 0, 0, 0, 0, 0},  //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
   {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
-  {1, 0, 0, 0, 0},     //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
+  {1, 0, 0, 0, 0},     //motorControl {runToPosition, runToPositionWithAccel, runContinuous, hardStop, disableMotor}
   0x00000000,          //currentPos
   0x00000000,          //distanceToGo
   0x00000000,          //move
@@ -70,7 +70,7 @@ volatile memoryMap registerMapOld {
   {0, 0},              //interruptConfig {requestedPosReachedEnable, requestedPosReachedIntTriggered, limSwitchPressedEnable}
   {0, 0, 0, 0, 0, 0},  //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
   {0, 0, 0, 0, 1},     //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
-  {1, 0, 0, 0, 0},     //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
+  {1, 0, 0, 0, 0},     //motorControl {runToPosition, runToPositionWithAccel, runContinuous, hardStop, disableMotor}
   0x00000000,          //currentPos
   0x00000000,          //distanceToGo
   0x00000000,          //move
@@ -94,7 +94,7 @@ memoryMap protectionMap = {
   //DEBUG: isLimited is R/W for sure
   {1, 1, 1, 1, 1, 1}, //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
   {1, 1, 1, 1, 1},    //motorConfig {ms1, ms2, ms3, disableMotorPositionReached, stopOnLimitSwitchPress}
-  {1, 1, 1, 1, 1},    //motorControl {run, runSpeed, runSpeedToPosition, stop, disableMotor}
+  {1, 1, 1, 1, 1},    //motorControl {runToPosition, runToPositionWithAccel, runContinuous, hardStop, disableMotor}
   0xFFFFFFFF,         //currentPos
   0x00000000,         //distanceToGo
   0xFFFFFFFF,         //move
@@ -239,13 +239,13 @@ void loop(void)
   //If everything is good, continue running the stepper
   if (registerMap.motorStatus.eStopped == false)
   {
-    if (registerMap.motorControl.run) {
+    if (registerMap.motorControl.runToPositionWithAccel) {
       stepper.run();
     }
-    else if (registerMap.motorControl.runSpeed) {
+    else if (registerMap.motorControl.runContinuous) {
       stepper.runSpeed();
     }
-    else if (registerMap.motorControl.runSpeedToPosition) {
+    else if (registerMap.motorControl.runToPosition) {
       stepper.runSpeedToPosition();
     }
     else if (registerMap.motorControl.hardStop) {
