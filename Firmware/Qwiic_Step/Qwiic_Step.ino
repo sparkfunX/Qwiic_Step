@@ -56,7 +56,7 @@ volatile memoryMap registerMap {
   0x00000000,          //acceleration (float)
   0x00000000,          //speed (float)
   0x00,                //enableSpeedNVM
-  0x0000,              //holdCurrent
+  0x07D0,              //holdCurrent - Default to 2000 mA
   0x0000,              //runCurrent
   DEFAULT_I2C_ADDRESS, //i2cAddress
 };
@@ -78,7 +78,7 @@ volatile memoryMap registerMapOld {
   0x00000000,          //acceleration (float)
   0x00000000,          //speed (float)
   0x00,                //enableSpeedNVM
-  0x0000,              //holdCurrent
+  0x07D0,              //holdCurrent - Default to 2000 mA
   0x0000,              //runCurrent
   DEFAULT_I2C_ADDRESS, //i2cAddress
 };
@@ -142,6 +142,15 @@ enum LimitState
 };
 volatile byte limitState = LIMIT_STATE_NOT_LIMITED;
 
+//State machine for updating current
+//Only want to reassign pwm pin when we transition states
+enum CurrentState
+{
+  CURRENT_STATE_HOLD = 0,
+  CURRENT_STATE_RUN,
+};
+volatile byte currentState = CURRENT_STATE_HOLD;
+
 volatile bool newData = false; //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
 volatile bool newMoveValue = false; //Goes true when user has written a new move value
 float previousSpeed; //Hold previous speed of motor to calculate its acceleration status
@@ -193,6 +202,12 @@ void setup(void)
   //Attach state-change of interrupt pins to corresponding ISRs
   attachInterrupt(digitalPinToInterrupt(PIN_ESTOP_SWITCH), eStopTriggered, LOW);
   attachInterrupt(digitalPinToInterrupt(PIN_LIMIT_SWITCH), limitSwitchTriggered, FALLING);
+
+  //Apply hold current
+  //Calculate the corresponding value for the 2000 mA default
+  int holdCurr = calculateCurrent(registerMap.holdCurrent);
+  //PWM output to engage the motor hold current
+  analogWrite(PIN_CURR_REF_PWM, holdCurr);
 
   startI2C(); //Determine the I2C address to be using and listen on I2C bus
 }
@@ -489,15 +504,38 @@ void updateRegisterMap()
 
 void updateCurrent()
 {
-  //Update hold current first
-  //Map registerMap hold current value to 1-255
-  int curr = map(registerMap.holdCurrent, 0, 2000, 0, 255); 
-  //Generate pwm signal on correct pin
-  analogWrite(PIN_CURR_REF_PWM, curr);
+  //In this case, the motor is running and we need to update the pwm output of the current reference pin
+  if (stepper.isRunning() == true && currentState == CURRENT_STATE_HOLD){
+    //Translate the value we have in registerMap to useful value for analogWrite
+    int runCurr = calculateCurrent(registerMap.runCurrent);
+    //Apply the correct duty cycle to the current reference pin
+    analogWrite(PIN_CURR_REF_PWM, runCurr);
+    //Change state
+    currentState == CURRENT_STATE_RUN;
+  }
+  //In this case, the motor is being held and we need to updat the pwm output of the current reference pin
+  else if (stepper.isRunning() == false && currentState == CURRENT_STATE_RUN){
+    //Translate the value we have in registerMap to useful value for analogWrite
+    int holdCurr = calculateCurrent(registerMap.holdCurrent);
+    //Apply the correct duty cycle to the current reference pin
+    analogWrite(PIN_CURR_REF_PWM, holdCurr);
+    //Change state
+    currentState == CURRENT_STATE_HOLD;
+  }
 
-  //Update run current next
-  //DEBUG: ...not sure how this should differ from the hold current
-    //Maybe they're not two separate things?
+  //DEBUGGING: leaving this here for now because this has been tested and works...
+//  //Update hold current first
+//  //Map registerMap hold current value to 1-255
+//  int curr = map(registerMap.holdCurrent, 0, 2000, 0, 255); 
+//  //Generate pwm signal on correct pin
+//  analogWrite(PIN_CURR_REF_PWM, curr);
+}
+
+int calculateCurrent(uint16_t current){
+  //Step down from 3V3 to 1.76V
+  int maxMap = (1.76/3.3) * 255
+  //Map registerMap value to 1-whatever
+  return map(current, 0, 2000, 0, maxMap);
 }
 
 //void recordSystemSettings()
