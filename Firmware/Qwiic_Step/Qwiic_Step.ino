@@ -220,25 +220,31 @@ void loop(void)
   if (newData == true)
   {
     updateStepper(); //Update accelstepper functions
-    //    printState();
-
-    //    //Record anything new to EEPROM
-    //    recordSystemSettings();
-
     newData = false;
   }
 
-  //Compare current state and see if we need to update any isReached, etc bits
-  updateStatusBits();
+  //Update register map with latest values from accel stepper library and 
+  //any state machine changes (isReached, etc bits)
+  updateRegisterMap();
 
-  //Check to see if we need to drive interrupt pin
+  //Check to see if we need to drive interrupt pin high or low
   updateInterruptPin();
 
   //If everything is good, continue running the stepper
   if (registerMap.motorStatus.eStopped == false)
   {
-    stepper.run();
-    //stepper.runSpeed();
+    if (registerMap.motorControl.run) {
+      stepper.run();
+    }
+    else if (registerMap.motorControl.runSpeed) {
+      stepper.runSpeed();
+    }
+    else if (registerMap.motorControl.runSpeedToPosition) {
+      stepper.runSpeedToPosition();
+    }
+    else if (registerMap.motorControl.stop) {
+      stepper.stop();
+    }
   }
 }
 
@@ -281,7 +287,7 @@ void updateInterruptPin()
     //If the user has cleared all the interrupt bits, or if we are moving and limit switch is not depressed
     //then clear interrupt pin
     if ( (moveState == MOVE_STATE_NOTMOVING_ISREACH_CLEARED || moveState == MOVE_STATE_MOVING)
-        && (limitState == LIMIT_STATE_LIMITED_CLEARED || limitState == LIMIT_STATE_NOT_LIMITED)
+         && (limitState == LIMIT_STATE_LIMITED_CLEARED || limitState == LIMIT_STATE_NOT_LIMITED)
        )
     {
       Serial.println("INT High");
@@ -396,9 +402,11 @@ void updateStepper()
   //  }
 }
 
-//Update the status bits within the STATUS register
-void updateStatusBits()
+//Update the register map with new states and bits
+void updateRegisterMap()
 {
+  registerMap.distanceToGo = stepper.distanceToGo();
+  
   float currentSpeed = stepper.speed();
 
   if (stepper.isRunning())
