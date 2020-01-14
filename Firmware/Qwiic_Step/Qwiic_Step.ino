@@ -21,7 +21,7 @@ const uint8_t PIN_MS1 = 9;
 const uint8_t PIN_MS2 = 8;
 const uint8_t PIN_MS3 = 7;
 const uint8_t addressPin = 11;
-const uint8_t curr_ref_pwm = 5;
+const uint8_t PIN_CURR_REF_PWM = 5;
 const uint8_t curr_sense = A6;    //DEBUG: right way to reference these pins?
 const uint8_t a49885_reset = A7;  //DEBUG: might not work... is pin only ADC input?
 const uint8_t PIN_ESTOP_SWITCH = 2; //E-Stop
@@ -37,6 +37,7 @@ const uint8_t PIN_MS3 = 6;
 const uint8_t PIN_ESTOP_SWITCH = 2; //E-stop
 const uint8_t PIN_LIMIT_SWITCH = 3; //Limit switch
 const uint8_t PIN_INT_OUTPUT = A1;
+const uint8_t PIN_CURR_REF_PWM = 9;
 #endif
 
 volatile memoryMap registerMap {
@@ -229,6 +230,9 @@ void loop(void)
 
   //Check to see if we need to drive interrupt pin high or low
   updateInterruptPin();
+
+  //Check to see what our motor current should be
+  updateCurrent();
 
   //If everything is good, continue running the stepper
   if (registerMap.motorStatus.eStopped == false)
@@ -481,6 +485,19 @@ void updateRegisterMap()
       Serial.println("User cleared isLimited");
     }
   }
+}
+
+void updateCurrent()
+{
+  //Update hold current first
+  //Map registerMap hold current value to 1-255
+  int curr = map(registerMap.holdCurrent, 0, 2000, 0, 255); 
+  //Generate pwm signal on correct pin
+  analogWrite(PIN_CURR_REF_PWM, curr);
+
+  //Update run current next
+  //DEBUG: ...not sure how this should differ from the hold current
+    //Maybe they're not two separate things?
 }
 
 //void recordSystemSettings()
