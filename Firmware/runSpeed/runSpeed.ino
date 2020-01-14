@@ -17,6 +17,8 @@ enum setOptions {
   STEP_SIZE_SIXTEENTH
 };
 
+long startTime;
+
 void setup()
 {
   pinMode(MS1, OUTPUT);
@@ -26,16 +28,22 @@ void setup()
   setStepSize(STEP_SIZE_FULL);
 
   stepper.setMaxSpeed(1000);
-  stepper.setSpeed(200);
+  stepper.setSpeed(-350);
+
+  startTime = millis();
 }
 
 void loop(){
   stepper.runSpeed();
-//  if (stepper.distanceToGo() != 0) {
-//  } else 
-//    delay(2000);  //Pause, then reset position and do it again
-//    stepper.setCurrentPosition(1);
-//  }
+
+  if(millis() - startTime > 2000)
+  {
+    //Let's do a slow stop
+
+    //stepper.stop(); //Nope - can have artifacts, partial steps afterwards.
+    stepper.setSpeed(0); //Good
+    while(1) stepper.runSpeed();
+  }
 }
 
 //Sets MS pins to user's input

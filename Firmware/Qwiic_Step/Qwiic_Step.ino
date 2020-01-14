@@ -243,17 +243,13 @@ void loop(void)
       stepper.run();
     }
     else if (registerMap.motorControl.runSpeed) {
-      //Serial.println(stepper.speed());
-//      //stepper.setMaxSpeed(1000.3);
-//      stepper.setSpeed(200.3);
-//      while(1)
       stepper.runSpeed();
     }
     else if (registerMap.motorControl.runSpeedToPosition) {
       stepper.runSpeedToPosition();
     }
-    else if (registerMap.motorControl.stop) {
-      stepper.stop();
+    else if (registerMap.motorControl.hardStop) {
+      //Do nothing. This will cause motor to hold in place.
     }
   }
 }
@@ -355,8 +351,10 @@ void updateStepper()
     //We will need to call setSpeed if user wants to be in runSpeed mode
     stepper.setSpeed(convertToFloat(registerMap.speed));
     delay(1); //Removing this delay causes the speed not to get stored correctly into library. I cannot explain why.
-    Serial.println(convertToFloat(registerMap.speed));
-    Serial.println(stepper.speed());
+
+    //Serial.println(convertToFloat(registerMap.speed));
+    //Serial.println(stepper.speed());
+
     registerMapOld.speed = registerMap.speed;
   }
 
@@ -378,11 +376,12 @@ void updateStepper()
   //Move to new value if user has given us one
   if (newMoveValue == true)
   {
-    //Handle special stop command
+    //Handle special 'soft' stop command
     if (registerMap.move == 0)
     {
       Serial.print("!");
       stepper.stop(); //Drift to a stop as quickly as possible, using the current speed and acceleration parameters.
+      stepper.setSpeed(0); //.stop() can leave artifacts and click slowly when in runSpeed mode. This clears it.
     }
     else
     {
@@ -559,13 +558,13 @@ void printState()
   Serial.println(*(registerPointer + 5), HEX);
 
   Serial.print("Motor config: ");
-  if(registerMap.motorControl.run == true) Serial.print("run");
-  else if(registerMap.motorControl.runSpeed == true) Serial.print("runSpeed");
-  else if(registerMap.motorControl.runSpeedToPosition == true) Serial.print("runSpeedToPosition");
-  else if(registerMap.motorControl.stop == true) Serial.print("stop");
+  if (registerMap.motorControl.run == true) Serial.print("run");
+  else if (registerMap.motorControl.runSpeed == true) Serial.print("runSpeed");
+  else if (registerMap.motorControl.runSpeedToPosition == true) Serial.print("runSpeedToPosition");
+  else if (registerMap.motorControl.hardStop == true) Serial.print("stop");
   Serial.println();
   //Serial.println(*(registerPointer + 6), HEX);
-  
+
   Serial.print("Current position: 0x");
   if (*(registerPointer + 0xA) < 0x10)
     Serial.print("0");

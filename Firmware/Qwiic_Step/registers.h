@@ -41,7 +41,7 @@ typedef union {
     bool run : 1;
     bool runSpeed : 1;
     bool runSpeedToPosition : 1;
-    bool stop : 1;
+    bool hardStop : 1;
     bool disableMotor : 1;
     bool : 3;
   };
