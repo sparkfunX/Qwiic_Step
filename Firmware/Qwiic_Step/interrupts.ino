@@ -67,7 +67,7 @@ void eStopTriggered()
   registerMapOld.acceleration = 0;
 
   //disable power if user has configured motor to do so
-  if (registerMap.motorConfig.disableMotorPositionReached)
+  if (registerMap.motorConfig.disableMotorOnPositionReached)
     stepper.disableOutputs();
 }
 
@@ -75,21 +75,26 @@ void eStopTriggered()
 //We enter different states of the limit state machine based on whether this is a rising or falling edge
 void limitSwitchTriggered()
 {
-  Serial.print("+");
-  if (limitState == LIMIT_STATE_NOT_LIMITED)
+  //Debounce check
+  delay(20);
+  if (digitalRead(PIN_LIMIT_SWITCH) == LOW)
   {
-    registerMap.motorStatus.isLimited = true;
-    limitState = LIMIT_STATE_LIMITED_SET;
-    Serial.println("Limit!");
-
-    //Stop motor if option is enabled
-    if (registerMap.motorConfig.stopOnLimitSwitchPress == true)
+    Serial.print("+");
+    if (limitState == LIMIT_STATE_NOT_LIMITED)
     {
-      stepper.stop();
-    }
+      registerMap.motorStatus.isLimited = true;
+      limitState = LIMIT_STATE_LIMITED_SET;
+      Serial.println("Limit!");
 
-    //TODO: Disable motor outputs if option enabled
-    //  if (registerMap.motorConfig.disableMotorPositionReached)
-    //    stepper.disableOutputs();
+      //Stop motor if option is enabled
+      if (registerMap.motorConfig.stopOnLimitSwitchPress == true)
+      {
+        stepper.stop();
+      }
+
+      //TODO: Disable motor outputs if option enabled
+      //  if (registerMap.motorConfig.disableMotorPositionReached)
+      //    stepper.disableOutputs();
+    }
   }
 }

@@ -28,7 +28,7 @@ typedef union {
     bool ms1 : 1;
     bool ms2 : 1;
     bool ms3 : 1;
-    bool disableMotorPositionReached : 1;
+    bool disableMotorOnPositionReached : 1;
     bool stopOnLimitSwitchPress : 1;
     bool : 3;
   };
@@ -46,7 +46,7 @@ typedef union {
     bool : 3;
   };
   uint8_t byteWrapped;
-} deviceControlBitField;
+} motorControlBitField;
 
 typedef struct memoryMap
 {
@@ -56,7 +56,7 @@ typedef struct memoryMap
 
   statusRegisterBitField motorStatus;
   deviceConfigBitField motorConfig;
-  deviceControlBitField motorControl;
+  motorControlBitField motorControl;
 
   signed long currentPos;
   signed long distanceToGo;
