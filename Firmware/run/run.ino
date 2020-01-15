@@ -18,10 +18,10 @@
 #define MS3 7
 #define CURRENT_REFERENCE 5 //PWM capable pin
 
-
 AccelStepper stepper(AccelStepper::DRIVER, STEP, DIRECTION); // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5
 
-enum stepOptions {
+enum stepOptions
+{
   STEP_SIZE_FULL = 0,
   STEP_SIZE_HALF,
   STEP_SIZE_QUARTER,
@@ -48,7 +48,7 @@ void setup()
   pinMode(MS3, OUTPUT);
 
   setStepSize(STEP_SIZE_FULL);
-    //setStepSize(STEP_SIZE_SIXTEENTH);
+  //setStepSize(STEP_SIZE_SIXTEENTH);
 
   stepper.setMaxSpeed(1000); //Required but no upper limit
   //stepper.setSpeed(400); //Not required
@@ -59,6 +59,7 @@ void setup()
 
 void loop()
 {
+  Serial.println(stepper.distanceToGo());
   stepper.run();
 }
 
@@ -67,36 +68,35 @@ void setStepSize(uint8_t stepSize)
 {
   switch (stepSize)
   {
-    case STEP_SIZE_FULL:
-      digitalWrite(MS1, LOW);
-      digitalWrite(MS2, LOW);
-      digitalWrite(MS3, LOW);
-      break;
-    case STEP_SIZE_HALF:
-      digitalWrite(MS1, HIGH);
-      digitalWrite(MS2, LOW);
-      digitalWrite(MS3, LOW);
-      break;
-    case STEP_SIZE_QUARTER:
-      digitalWrite(MS1, LOW);
-      digitalWrite(MS2, HIGH);
-      digitalWrite(MS3, LOW);
-      break;
-    case STEP_SIZE_EIGHTH:
-      digitalWrite(MS1, HIGH);
-      digitalWrite(MS2, HIGH);
-      digitalWrite(MS3, LOW);
-      break;
-    case STEP_SIZE_SIXTEENTH:
-      digitalWrite(MS1, HIGH);
-      digitalWrite(MS2, HIGH);
-      digitalWrite(MS3, HIGH);
-      break;
-    default:
-      digitalWrite(MS1, HIGH);
-      digitalWrite(MS2, HIGH);
-      digitalWrite(MS3, HIGH);
-      break;
+  case STEP_SIZE_FULL:
+    digitalWrite(MS1, LOW);
+    digitalWrite(MS2, LOW);
+    digitalWrite(MS3, LOW);
+    break;
+  case STEP_SIZE_HALF:
+    digitalWrite(MS1, HIGH);
+    digitalWrite(MS2, LOW);
+    digitalWrite(MS3, LOW);
+    break;
+  case STEP_SIZE_QUARTER:
+    digitalWrite(MS1, LOW);
+    digitalWrite(MS2, HIGH);
+    digitalWrite(MS3, LOW);
+    break;
+  case STEP_SIZE_EIGHTH:
+    digitalWrite(MS1, HIGH);
+    digitalWrite(MS2, HIGH);
+    digitalWrite(MS3, LOW);
+    break;
+  case STEP_SIZE_SIXTEENTH:
+    digitalWrite(MS1, HIGH);
+    digitalWrite(MS2, HIGH);
+    digitalWrite(MS3, HIGH);
+    break;
+  default:
+    digitalWrite(MS1, HIGH);
+    digitalWrite(MS2, HIGH);
+    digitalWrite(MS3, HIGH);
+    break;
   }
-
 }

@@ -14845,6 +14845,8 @@ and heat sinking/fan to reach this.</text>
 <text x="180.34" y="55.88" size="1.4224" layer="97">E-stop</text>
 <text x="2.54" y="20.32" size="1.4224" layer="97">3.5mm Screw Terminal</text>
 <text x="256.54" y="-2.54" size="1.27" layer="91">heat sink?</text>
+<text x="251.46" y="124.46" size="1.27" layer="91">Move A49885_RESET pin to GPIO</text>
+<text x="223.52" y="91.44" size="1.27" layer="91">This is the ADR jumper</text>
 </plain>
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0" smashed="yes"/>
@@ -15089,8 +15091,8 @@ and heat sinking/fan to reach this.</text>
 <instance part="SUPPLY22" gate="G$1" x="147.32" y="157.48" smashed="yes">
 <attribute name="VALUE" x="147.32" y="160.274" size="1.778" layer="96" align="bottom-center"/>
 </instance>
-<instance part="GND20" gate="1" x="220.98" y="160.02" smashed="yes" rot="R180">
-<attribute name="VALUE" x="220.98" y="160.274" size="1.778" layer="96" rot="R180" align="top-center"/>
+<instance part="GND20" gate="1" x="228.6" y="71.12" smashed="yes">
+<attribute name="VALUE" x="228.6" y="70.866" size="1.778" layer="96" align="top-center"/>
 </instance>
 <instance part="SUPPLY23" gate="G$1" x="144.78" y="88.9" smashed="yes">
 <attribute name="VALUE" x="144.78" y="91.694" size="1.778" layer="96" align="bottom-center"/>
@@ -15131,9 +15133,9 @@ and heat sinking/fan to reach this.</text>
 <attribute name="NAME" x="54.864" y="89.281" size="1.778" layer="95" font="vector"/>
 <attribute name="VALUE" x="54.864" y="84.201" size="1.778" layer="96" font="vector"/>
 </instance>
-<instance part="JP2" gate="G$1" x="220.98" y="149.86" smashed="yes" rot="MR270">
-<attribute name="NAME" x="218.44" y="152.4" size="1.778" layer="95" font="vector" rot="MR270"/>
-<attribute name="VALUE" x="223.52" y="152.4" size="1.778" layer="96" font="vector" rot="MR270" align="top-left"/>
+<instance part="JP2" gate="G$1" x="228.6" y="81.28" smashed="yes" rot="MR270">
+<attribute name="NAME" x="226.06" y="83.82" size="1.778" layer="95" font="vector" rot="MR270"/>
+<attribute name="VALUE" x="231.14" y="83.82" size="1.778" layer="96" font="vector" rot="MR270" align="top-left"/>
 </instance>
 <instance part="D5" gate="G$1" x="55.88" y="15.24" smashed="yes">
 <attribute name="NAME" x="52.451" y="10.668" size="1.778" layer="95" font="vector" rot="R90"/>
@@ -15333,11 +15335,6 @@ and heat sinking/fan to reach this.</text>
 <pinref part="D2" gate="G$1" pin="C"/>
 </segment>
 <segment>
-<pinref part="GND20" gate="1" pin="GND"/>
-<wire x1="220.98" y1="157.48" x2="220.98" y2="154.94" width="0.1524" layer="91"/>
-<pinref part="JP2" gate="G$1" pin="1"/>
-</segment>
-<segment>
 <pinref part="D4" gate="G$1" pin="C"/>
 <wire x1="134.62" y1="76.2" x2="134.62" y2="78.74" width="0.1524" layer="91"/>
 <pinref part="GND30" gate="1" pin="GND"/>
@@ -15374,6 +15371,11 @@ and heat sinking/fan to reach this.</text>
 <pinref part="U4" gate="U1" pin="GND"/>
 <wire x1="-43.18" y1="129.54" x2="-43.18" y2="132.08" width="0.1524" layer="91"/>
 <wire x1="-43.18" y1="132.08" x2="-40.64" y2="132.08" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="GND20" gate="1" pin="GND"/>
+<pinref part="JP2" gate="G$1" pin="2"/>
+<wire x1="228.6" y1="73.66" x2="228.6" y2="76.2" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="CUR_REF" class="0">
@@ -15891,17 +15893,6 @@ and heat sinking/fan to reach this.</text>
 <wire x1="139.7" y1="142.24" x2="142.24" y2="142.24" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="ADR" class="0">
-<segment>
-<wire x1="220.98" y1="142.24" x2="223.52" y2="142.24" width="0.1524" layer="91"/>
-<wire x1="220.98" y1="144.78" x2="220.98" y2="142.24" width="0.1524" layer="91"/>
-<label x="223.52" y="142.24" size="1.27" layer="95" rot="MR180" xref="yes"/>
-<pinref part="JP2" gate="G$1" pin="2"/>
-<pinref part="U2" gate="U1" pin="PC0(ADC0)"/>
-<wire x1="210.82" y1="142.24" x2="220.98" y2="142.24" width="0.1524" layer="91"/>
-<junction x="220.98" y="142.24"/>
-</segment>
-</net>
 <net name="N$26" class="0">
 <segment>
 <pinref part="R15" gate="G$1" pin="1"/>
@@ -15999,9 +15990,9 @@ and heat sinking/fan to reach this.</text>
 <label x="88.9" y="78.74" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
-<pinref part="U2" gate="U1" pin="ADC7"/>
-<wire x1="210.82" y1="124.46" x2="213.36" y2="124.46" width="0.1524" layer="91"/>
-<label x="213.36" y="124.46" size="1.27" layer="95" xref="yes"/>
+<label x="213.36" y="142.24" size="1.27" layer="95" rot="MR180" xref="yes"/>
+<pinref part="U2" gate="U1" pin="PC0(ADC0)"/>
+<wire x1="210.82" y1="142.24" x2="213.36" y2="142.24" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="INT0" class="0">
@@ -16076,8 +16067,12 @@ and heat sinking/fan to reach this.</text>
 </segment>
 <segment>
 <pinref part="U2" gate="U1" pin="PB3(MOSI/OC2)"/>
-<wire x1="210.82" y1="88.9" x2="213.36" y2="88.9" width="0.1524" layer="91"/>
-<label x="213.36" y="88.9" size="1.27" layer="95" xref="yes"/>
+<wire x1="210.82" y1="88.9" x2="228.6" y2="88.9" width="0.1524" layer="91"/>
+<label x="233.68" y="88.9" size="1.27" layer="95" xref="yes"/>
+<pinref part="JP2" gate="G$1" pin="1"/>
+<wire x1="228.6" y1="88.9" x2="233.68" y2="88.9" width="0.1524" layer="91"/>
+<wire x1="228.6" y1="86.36" x2="228.6" y2="88.9" width="0.1524" layer="91"/>
+<junction x="228.6" y="88.9"/>
 </segment>
 </net>
 </nets>
