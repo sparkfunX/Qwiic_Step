@@ -14,7 +14,7 @@
 #define LOCATION_REGISTERMAP 0   //Location in EEPROM. Map is ~41 bytes currently.
 #define LOCATION_PORSETTINGS 100 //Location in EEPROM for POR settings (for headless operation).
 
-//#define PRODUCTION_TARGET 1 //Uncomment to use the production code
+#define PRODUCTION_TARGET 1 //Uncomment to use the production code
 
 //Hardware connections
 #if defined(PRODUCTION_TARGET) //Used in production
