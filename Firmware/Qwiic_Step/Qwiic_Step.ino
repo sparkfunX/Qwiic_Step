@@ -533,7 +533,7 @@ void updateCurrent()
 
 int calculateCurrent(uint16_t current){
   //Step down from 3V3 to 1.76V
-  int maxMap = (1.76/3.3) * 255
+  int maxMap = (1.76/3.3) * 255;
   //Map registerMap value to 1-whatever
   return map(current, 0, 2000, 0, maxMap);
 }
