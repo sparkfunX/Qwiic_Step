@@ -1,24 +1,25 @@
-
 #include <AccelStepper.h>
 
-#define STEP A3
+#define STEP  A3
 #define DIRECTION 6
 #define ENABLE 10
 #define MS1 9
 #define MS2 8
 #define MS3 7
 
-//#define CURRENT_REFERENCE 11 //PWM capapble pin
+#define CURRENT_REFERENCE 5  //PWM capable pin
+#define CURRENT_SENSE A6    //ADC pin
 
-AccelStepper stepper(AccelStepper::DRIVER, STEP, DIRECTION); // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5
+AccelStepper stepper(AccelStepper::DRIVER, STEP, DIRECTION); 
 
-enum stepOptions {
-  STEP_SIZE_FULL = 0,
-  STEP_SIZE_HALF,
-  STEP_SIZE_QUARTER,
-  STEP_SIZE_EIGHTH,
-  STEP_SIZE_SIXTEENTH
-};
+int v_out;
+float v_sense;
+float i_sense;
+float r_sense;
+
+uint16_t n = 0;
+long sum = 0;
+int avg;
 
 void setup()
 {
@@ -27,74 +28,44 @@ void setup()
 
   delay(5); //Wait for Easy Driver to wake up
 
-  //stepper.setEnablePin(ENABLE);
   pinMode(ENABLE, OUTPUT);
   digitalWrite(ENABLE, LOW);
-  //digitalWrite(ENABLE, HIGH);
 
   pinMode(MS1, OUTPUT);
   pinMode(MS2, OUTPUT);
   pinMode(MS3, OUTPUT);
 
-  //Set to full step mode
+  //Configure full step mode
   digitalWrite(MS1, LOW);
   digitalWrite(MS2, LOW);
   digitalWrite(MS3, LOW);
 
-//  setStepSize(STEP_SIZE_FULL);
-//  setStepSize(STEP_SIZE_SIXTEENTH);
-
   stepper.setMaxSpeed(1000);
-  stepper.setSpeed(400);
-  stepper.setAcceleration(1000);
+  stepper.setSpeed(600);
 
-  stepper.move(400);
+  //Initialize the value of r_sense
+  r_sense = 0.25; 
+
+  //PWM signal of 0.1V at current reference pin
+  int duty_cycle = (1/3.3) * 255;
+  analogWrite(CURRENT_REFERENCE, duty_cycle);
 }
 
 void loop()
 {
-  Serial.println(stepper.distanceToGo());
-  stepper.run();
+  v_out = analogRead(CURRENT_SENSE);
+  v_sense = v_out/5;
+  i_sense = v_sense/r_sense;
+
+  sum += v_out;
+  avg = sum / n;
+
+//  Serial.print("This is v_out: ");
+  Serial.println(avg);
+//  Serial.print("This is the sense current: ");
+//  Serial.println(i_sense);
   
-//  stepper.runSpeed();
-  //stepper.runToNewPosition(10000);
-}
-
-//Sets MS pins to user's input
-void setStepSize(uint8_t stepSize)
-{
-  switch (stepSize)
-  {
-    case STEP_SIZE_FULL:
-      digitalWrite(MS1, LOW);
-      digitalWrite(MS2, LOW);
-      digitalWrite(MS3, LOW);
-      break;
-    case STEP_SIZE_HALF:
-      digitalWrite(MS1, HIGH);
-      digitalWrite(MS2, LOW);
-      digitalWrite(MS3, LOW);
-      break;
-    case STEP_SIZE_QUARTER:
-      digitalWrite(MS1, LOW);
-      digitalWrite(MS2, HIGH);
-      digitalWrite(MS3, LOW);
-      break;
-    case STEP_SIZE_EIGHTH:
-      digitalWrite(MS1, HIGH);
-      digitalWrite(MS2, HIGH);
-      digitalWrite(MS3, LOW);
-      break;
-    case STEP_SIZE_SIXTEENTH:
-      digitalWrite(MS1, HIGH);
-      digitalWrite(MS2, HIGH);
-      digitalWrite(MS3, HIGH);
-      break;
-    default:
-      digitalWrite(MS1, HIGH);
-      digitalWrite(MS2, HIGH);
-      digitalWrite(MS3, HIGH);
-      break;
-  }
-
+  stepper.runSpeed();
+  delay(1);
+  n++;
 }

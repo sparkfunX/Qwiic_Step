@@ -11,7 +11,7 @@
 #define FIRMWARE_VERSION 0x0100
 #define DEFAULT_I2C_ADDRESS 0x52
 
-//#define PRODUCTION_TARGET 1 //Uncomment to use the production code
+#define PRODUCTION_TARGET 1 //Uncomment to use the production code
 
 //Hardware connections
 #if defined(PRODUCTION_TARGET) //Used in production
