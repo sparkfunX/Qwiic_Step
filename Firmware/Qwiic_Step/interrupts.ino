@@ -7,8 +7,6 @@ void receiveEvent(int numberOfBytesReceived)
 {
   registerNumber = Wire.read(); //Get the memory map offset from the user
 
-  newData = true; //Tell the main loop there is new data to process.
-
   //Begin recording the following incoming bytes to the temp memory map
   //starting at the registerNumber (the first byte received)
   for (uint8_t x = 0; x < numberOfBytesReceived - 1; x++)
@@ -23,17 +21,23 @@ void receiveEvent(int numberOfBytesReceived)
       *(registerPointer + registerNumber + x) |= temp & *(protectionPointer + registerNumber + x); //Or in the user's request (clensed against protection bits)
     }
   }
+  digitalWrite(DEBUG_PIN, LOW);
 
   //See if user has written a new Move value
   //Because Move is relative, we cannot simply tell by the value in the register. ie, the user might write 400, then 400 again.
   //We would need to move 400 steps, then another 400.
-  //We also need to make sure the user is not sending us a 'read the Move register' command. So we check that the bytes received are greater
-  //than 1.
+  //We also need to make sure the user is not sending us a 'read the Move register' command. So we check that the bytes received are greater than 1.
   if (registerNumber <= offsetof(struct memoryMap, move) && (registerNumber + numberOfBytesReceived) > (offsetof(struct memoryMap, move) + sizeof(registerMap.move)))
   {
-    Serial.print("~");
+    //Serial.print("~");
     newMoveValue = true;
   }
+
+  updateParameters(); //Pass any new speed, accel, etc values to the library
+
+  updateRegisterMap(); //As the accel library updates values, push them to the register map (isReached, etc bits)
+
+  digitalWrite(DEBUG_PIN, HIGH);
 }
 
 //Respond to read commands

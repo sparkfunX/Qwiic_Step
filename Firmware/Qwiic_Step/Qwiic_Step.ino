@@ -30,7 +30,7 @@ const uint8_t PIN_LIMIT_SWITCH = 3; //Limit switch
 const uint8_t PIN_INT_OUTPUT = A1;
 //We need an enable pin
 #else //Used for development
-#define DEBUG_PIN 12
+const uint8_t DEBUG_PIN = A3;
 const uint8_t PIN_STEP = 7;
 const uint8_t PIN_DIRECTION = 8;
 const uint8_t PIN_ENABLE = 10;
@@ -156,7 +156,7 @@ void setup(void)
 {
 #ifndef PRODUCTION_TARGET
   pinMode(DEBUG_PIN, OUTPUT);
-  digitalWrite(DEBUG_PIN, LOW);
+  digitalWrite(DEBUG_PIN, HIGH);
 #endif
 
   //Motor config pins are all outputs
@@ -223,20 +223,10 @@ void loop(void)
   }
 #endif
 
-  if (newData == true)
-  {
-    updateStepper(); //Update accelstepper functions
-    newData = false;
-  }
-
-  //Update register map with latest values from accel stepper library and
-  //any state machine changes (isReached, etc bits)
-  updateRegisterMap();
-
   //Check to see if we need to drive interrupt pin high or low
   updateInterruptPin();
 
-  //If everything is good, continue running the stepper
+  //Run the stepper motor in the user chosen mode
   if (registerMap.motorStatus.eStopped == false)
   {
     if (registerMap.motorControl.runToPositionWithAccel) {
@@ -302,23 +292,23 @@ void updateInterruptPin()
   }
 }
 
-//Called when there is new data from the user
+//Pass any new speed, accel, etc values to the library
 //Determine what's new by comparing new vs old and pass the
 //new values to the stepper library
-void updateStepper()
+void updateParameters()
 {
-  //  digitalWrite(DEBUG_PIN, HIGH);
+  //digitalWrite(DEBUG_PIN, HIGH);
 
   if (registerMapOld.maxSpeed != registerMap.maxSpeed)
   {
-    Serial.print("S");
+    //    Serial.print("S");
     stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
     registerMapOld.maxSpeed = registerMap.maxSpeed;
   }
 
   if (registerMapOld.acceleration != registerMap.acceleration)
   {
-    Serial.print("A");
+    //    Serial.print("A");
     stepper.setAcceleration(convertToFloat(registerMap.acceleration));
     registerMapOld.acceleration = registerMap.acceleration;
   }
@@ -326,7 +316,7 @@ void updateStepper()
   //DEBUG: would this be the right way to service moveTo function?
   if (registerMapOld.moveTo != registerMap.moveTo)
   {
-    Serial.print("T");
+    //    Serial.print("T");
     //stepper.moveTo(registerMap.moveTo);
     registerMapOld.moveTo = registerMap.moveTo;
   }
@@ -337,13 +327,13 @@ void updateStepper()
     //Handle special 'soft' stop command
     if (registerMap.move == 0)
     {
-      Serial.print("!");
+      //      Serial.print("!");
       stepper.stop(); //Drift to a stop as quickly as possible, using the current speed and acceleration parameters.
       stepper.setSpeed(0); //.stop() can leave artifacts and click slowly when in runSpeed mode. This clears it.
     }
     else
     {
-      Serial.print("*");
+      //      Serial.print("*");
       stepper.move(registerMap.move);
     }
     moveState = MOVE_STATE_MOVING; //Change our state
@@ -361,7 +351,7 @@ void updateStepper()
     //In runToPositionWithAccel mode the library will calculate the speed automatically
     if (registerMap.motorControl.runToPosition || registerMap.motorControl.runContinuous)
     {
-      Serial.print("P");
+      //      Serial.print("P");
 
       //Calling .setSpeed with a value causes motor to twitch very slowly when we call .run. It shouldn't be. Libary bug?
       //https://www.airspayce.com/mikem/arduino/AccelStepper/classAccelStepper.html#ae79c49ad69d5ccc9da0ee691fa4ca235
@@ -377,9 +367,20 @@ void updateStepper()
 
   if (registerMapOld.currentPos != registerMap.currentPos)
   {
-    Serial.print("C");
+    //    Serial.print("C");
     stepper.setCurrentPosition(registerMap.currentPos);
     registerMapOld.currentPos = registerMap.currentPos;
+  }
+
+  if (registerMapOld.motorControl.disableMotor != registerMap.motorControl.disableMotor)
+  {
+    Serial.print("D");
+    if (registerMap.motorControl.disableMotor == true)
+      stepper.disableOutputs();
+    else
+      stepper.enableOutputs();
+
+    registerMapOld.motorControl.disableMotor = registerMap.motorControl.disableMotor;
   }
 
   if (registerMapOld.motorConfig.ms1 != registerMap.motorConfig.ms1
@@ -398,7 +399,7 @@ void updateStepper()
   }
 
   //  //DEBUGGING
-  //  digitalWrite(DEBUG_PIN, LOW);
+  //digitalWrite(DEBUG_PIN, LOW);
 
   //  if (registerMap.enableMoveNVM == 0x59) {
   //    recordSystemSettings(); //record registerMap to EEPROM?
@@ -466,7 +467,7 @@ void updateRegisterMap()
     //Check if we have made it to our target position
     if (stepper.targetPosition() == stepper.currentPosition())
     {
-      Serial.println("Arrived");
+      //Serial.println("Arrived");
       moveState = MOVE_STATE_NOTMOVING_ISREACH_SET;
       registerMap.motorStatus.isReached = true;
     } //We do not clear the isReached bit. The user must actively clear it which will clear the interrupt as well.
@@ -476,7 +477,7 @@ void updateRegisterMap()
     if (registerMap.motorStatus.isReached == false)
     {
       moveState = MOVE_STATE_NOTMOVING_ISREACH_CLEARED;
-      Serial.println("User cleared isReached");
+      //Serial.println("User cleared isReached");
     }
   }
 
@@ -485,7 +486,7 @@ void updateRegisterMap()
     if (registerMap.motorStatus.isLimited == false)
     {
       limitState = LIMIT_STATE_LIMITED_CLEARED;
-      Serial.println("User cleared isLimited");
+      //Serial.println("User cleared isLimited");
     }
   }
 }
