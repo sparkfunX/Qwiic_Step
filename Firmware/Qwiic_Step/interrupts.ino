@@ -29,13 +29,19 @@ void receiveEvent(int numberOfBytesReceived)
   //We also need to make sure the user is not sending us a 'read the Move register' command. So we check that the bytes received are greater than 1.
   if (registerNumber <= offsetof(struct memoryMap, move) && (registerNumber + numberOfBytesReceived) > (offsetof(struct memoryMap, move) + sizeof(registerMap.move)))
   {
-    //Serial.print("~");
     newMoveValue = true;
   }
 
-  updateParameters(); //Pass any new speed, accel, etc values to the library
+  //When the user writes a *new* value to currentPosition we need to pass it along to the library
+  //The new value may be the same as the value currently in the register map. For example, regMap may contain
+  //0. User moves the motor a bunch, then writes 0 to currentPos. The value is the same, but we need to update
+  //the library and set its currentPosition to 0.
+  if (registerNumber <= offsetof(struct memoryMap, currentPos) && (registerNumber + numberOfBytesReceived) > (offsetof(struct memoryMap, currentPos) + sizeof(registerMap.currentPos)))
+  {
+    newPositionValue = true;
+  }
 
-  updateRegisterMap(); //As the accel library updates values, push them to the register map (isReached, etc bits)
+  updateParameters(); //Pass any new speed, accel, etc values to the library
 
   digitalWrite(DEBUG_PIN, HIGH);
 }
@@ -46,6 +52,9 @@ void receiveEvent(int numberOfBytesReceived)
 //Can only write 32 bytes at a time. Conditional takes care of cases where we write too many byte (memoryMap > 32 bytes)
 void requestEvent()
 {
+  //As the accel library updates values, push them to the register map (isAccelerating, currentPos, isReached, etc bits)
+  updateRegisterMap(); 
+
   //Write to I2C bus
   uint8_t len = (sizeof(memoryMap) - registerNumber);
   Wire.write((uint8_t *)(registerPointer + registerNumber), (len > TWI_BUFFER_LENGTH) ? TWI_BUFFER_LENGTH : len);

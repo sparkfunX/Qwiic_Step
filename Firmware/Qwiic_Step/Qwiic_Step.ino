@@ -145,7 +145,8 @@ enum LimitState
 volatile byte limitState = LIMIT_STATE_NOT_LIMITED;
 
 volatile bool newData = false; //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
-volatile bool newMoveValue = false; //Goes true when user has written a new move value
+volatile bool newMoveValue = false; //Goes true when user has written a value to the move register
+volatile bool newPositionValue = false; //Goes true when user has written a value to the currentPos register
 float previousSpeed; //Hold previous speed of motor to calculate its acceleration status
 unsigned long lastSpeedChange = 0; //Marks the time when previous speed last changed. Used to detect accel/deccel
 
@@ -259,6 +260,39 @@ void updateInterruptPin()
     }
   }
 
+  //Handle the Move state machine
+  //There are three states: MOVING, NOTMOVING_ISREACH_SET, NOTMOVING_ISREACH_CLEARED
+  //MOVING happens when user has sent a Move value. Entered from any state.
+  //NOTMOVING_ISREACH_SET happens once we've completed the previous MOVING state
+  //NOTMOVING_ISREACH_CLEARED happens from _SET once user has cleared the bit
+  if (moveState == MOVE_STATE_MOVING)
+  {
+    //Check if we have made it to our target position
+    if (stepper.targetPosition() == stepper.currentPosition())
+    {
+      //Serial.println("Arrived");
+      moveState = MOVE_STATE_NOTMOVING_ISREACH_SET;
+      registerMap.motorStatus.isReached = true;
+    } //We do not clear the isReached bit. The user must actively clear it which will clear the interrupt as well.
+  }
+  else if (moveState == MOVE_STATE_NOTMOVING_ISREACH_SET)
+  {
+    if (registerMap.motorStatus.isReached == false)
+    {
+      moveState = MOVE_STATE_NOTMOVING_ISREACH_CLEARED;
+      //Serial.println("User cleared isReached");
+    }
+  }
+
+  if (limitState == LIMIT_STATE_LIMITED_SET)
+  {
+    if (registerMap.motorStatus.isLimited == false)
+    {
+      limitState = LIMIT_STATE_LIMITED_CLEARED;
+      //Serial.println("User cleared isLimited");
+    }
+  }
+
   //Interrupt pin state machine
   //There are two states: Int Cleared, Int Indicated
   //INT_INDICATED state is entered when either LIMIT_STATE_LIMITED_SET or MOVE_STATE_NOTMOVING_ISREACH_SET is satisfied
@@ -292,9 +326,9 @@ void updateInterruptPin()
   }
 }
 
+//Called after I2C receive interrupt so user has passed us new data
 //Pass any new speed, accel, etc values to the library
-//Determine what's new by comparing new vs old and pass the
-//new values to the stepper library
+//Determine what's new by comparing old register map against new data
 void updateParameters()
 {
   //digitalWrite(DEBUG_PIN, HIGH);
@@ -313,11 +347,10 @@ void updateParameters()
     registerMapOld.acceleration = registerMap.acceleration;
   }
 
-  //DEBUG: would this be the right way to service moveTo function?
   if (registerMapOld.moveTo != registerMap.moveTo)
   {
     //    Serial.print("T");
-    //stepper.moveTo(registerMap.moveTo);
+    stepper.moveTo(registerMap.moveTo);
     registerMapOld.moveTo = registerMap.moveTo;
   }
 
@@ -365,16 +398,23 @@ void updateParameters()
     }
   }
 
-  if (registerMapOld.currentPos != registerMap.currentPos)
+  if (newPositionValue == true)
   {
-    //    Serial.print("C");
+    Serial.print("$");
     stepper.setCurrentPosition(registerMap.currentPos);
     registerMapOld.currentPos = registerMap.currentPos;
+    newPositionValue = false;
+
+    //Edge case: If user moveTo(50), setPos(0), then moveTo(50)
+    //The value in moveTo hasn't changed but our absolute position has.
+    //Update the moveTo register to the setPos to avoid conflict.
+    //The only downside is if user reads the moveTo register, it will be corrupt
+    registerMap.moveTo = registerMap.currentPos;
+    registerMapOld.moveTo = registerMap.currentPos;
   }
 
   if (registerMapOld.motorControl.disableMotor != registerMap.motorControl.disableMotor)
   {
-    Serial.print("D");
     if (registerMap.motorControl.disableMotor == true)
       stepper.disableOutputs();
     else
@@ -407,10 +447,12 @@ void updateParameters()
   //  }
 }
 
-//Update the register map with new states and bits
+//Called from I2C respond interrupt. Right before we push requested I2C data out to the bus
+//As the accel library updates values, push them to the register map (isAccelerating, currentPos, isReached, etc bits)
 void updateRegisterMap()
 {
   registerMap.distanceToGo = stepper.distanceToGo();
+  registerMap.currentPos = stepper.currentPosition();
 
   float currentSpeed = stepper.speed();
 
@@ -457,38 +499,7 @@ void updateRegisterMap()
     lastSpeedChange = millis();
   }
 
-  //Handle the Move state machine
-  //There are three states: MOVING, NOTMOVING_ISREACH_SET, NOTMOVING_ISREACH_CLEARED
-  //MOVING happens when user has sent a Move value. Entered from any state.
-  //NOTMOVING_ISREACH_SET happens once we've completed the previous MOVING state
-  //NOTMOVING_ISREACH_CLEARED happens from _SET once user has cleared the bit
-  if (moveState == MOVE_STATE_MOVING)
-  {
-    //Check if we have made it to our target position
-    if (stepper.targetPosition() == stepper.currentPosition())
-    {
-      //Serial.println("Arrived");
-      moveState = MOVE_STATE_NOTMOVING_ISREACH_SET;
-      registerMap.motorStatus.isReached = true;
-    } //We do not clear the isReached bit. The user must actively clear it which will clear the interrupt as well.
-  }
-  else if (moveState == MOVE_STATE_NOTMOVING_ISREACH_SET)
-  {
-    if (registerMap.motorStatus.isReached == false)
-    {
-      moveState = MOVE_STATE_NOTMOVING_ISREACH_CLEARED;
-      //Serial.println("User cleared isReached");
-    }
-  }
 
-  if (limitState == LIMIT_STATE_LIMITED_SET)
-  {
-    if (registerMap.motorStatus.isLimited == false)
-    {
-      limitState = LIMIT_STATE_LIMITED_CLEARED;
-      //Serial.println("User cleared isLimited");
-    }
-  }
 }
 
 //void recordSystemSettings()
