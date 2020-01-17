@@ -20,7 +20,7 @@ typedef union {
     bool : 2;
   };
   uint8_t byteWrapped;
-} statusRegisterBitField;
+} statusBitField;
 
 typedef union {
   struct
@@ -33,7 +33,7 @@ typedef union {
     bool : 3;
   };
   uint8_t byteWrapped;
-} deviceConfigBitField;
+} configBitField;
 
 typedef union {
   struct
@@ -46,7 +46,7 @@ typedef union {
     bool : 3;
   };
   uint8_t byteWrapped;
-} motorControlBitField;
+} controlBitField;
 
 typedef struct memoryMap
 {
@@ -54,9 +54,9 @@ typedef struct memoryMap
   uint16_t firmware;
   interruptConfigBitField interruptConfig;
 
-  statusRegisterBitField motorStatus;
-  deviceConfigBitField motorConfig;
-  motorControlBitField motorControl;
+  statusBitField motorStatus;
+  configBitField motorConfig;
+  controlBitField motorControl;
 
   signed long currentPos;
   signed long distanceToGo;

@@ -273,6 +273,11 @@ void updateInterruptPin()
       //Serial.println("Arrived");
       moveState = MOVE_STATE_NOTMOVING_ISREACH_SET;
       registerMap.motorStatus.isReached = true;
+
+      //Do we need to disable the motor?
+      if (registerMap.motorConfig.disableMotorOnPositionReached == true)
+        stepper.disableOutputs();
+
     } //We do not clear the isReached bit. The user must actively clear it which will clear the interrupt as well.
   }
   else if (moveState == MOVE_STATE_NOTMOVING_ISREACH_SET)
@@ -400,7 +405,7 @@ void updateParameters()
 
   if (newPositionValue == true)
   {
-    Serial.print("$");
+    //Serial.print("$");
     stepper.setCurrentPosition(registerMap.currentPos);
     registerMapOld.currentPos = registerMap.currentPos;
     newPositionValue = false;
