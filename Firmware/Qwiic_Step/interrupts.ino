@@ -62,11 +62,10 @@ void requestEvent()
 
 void eStopTriggered()
 {
-  //Stop the motor
-  stepper.stop();
+  //Setting the hard stop bit will prevent any future moves of the stepper
+  registerMap.motorControl.hardStop = true;
 
-  //update status bit
-  //user needs to manually clear this bit for operations to continue after an e-stop event
+  //User needs to manually clear estopped bit for operations to continue after an e-stop event
   registerMap.motorStatus.eStopped = true;
 
   //call accelstepper library functions and update memoryMap accordingly
@@ -80,8 +79,8 @@ void eStopTriggered()
   registerMap.acceleration = 0;
   registerMapOld.acceleration = 0;
 
-  //disable power if user has configured motor to do so
-  if (registerMap.motorConfig.disableMotorOnPositionReached)
+  //Disable power if user has configured motor to do so
+  if (registerMap.motorConfig.disableMotorOnEStop)
     stepper.disableOutputs();
 }
 

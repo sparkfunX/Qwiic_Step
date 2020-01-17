@@ -28,9 +28,10 @@ typedef union {
     bool ms1 : 1;
     bool ms2 : 1;
     bool ms3 : 1;
+    bool disableMotorOnEStop : 1;           //If 1, stepper is disabled when EStop occurs.
     bool disableMotorOnPositionReached : 1;
     bool stopOnLimitSwitchPress : 1;
-    bool : 3;
+    bool : 2;
   };
   uint8_t byteWrapped;
 } configBitField;
