@@ -53,7 +53,7 @@ void receiveEvent(int numberOfBytesReceived)
 void requestEvent()
 {
   //As the accel library updates values, push them to the register map (isAccelerating, currentPos, isReached, etc bits)
-  updateRegisterMap(); 
+  updateRegisterMap();
 
   //Write to I2C bus
   uint8_t len = (sizeof(memoryMap) - registerNumber);
@@ -62,26 +62,31 @@ void requestEvent()
 
 void eStopTriggered()
 {
-  //Setting the hard stop bit will prevent any future moves of the stepper
-  registerMap.motorControl.hardStop = true;
+  //Debounce check
+  delay(20);
+  if (digitalRead(PIN_ESTOP_SWITCH) == LOW)
+  {
+    //Setting the hard stop bit will prevent any future moves of the stepper
+    registerMap.motorControl.hardStop = true;
 
-  //User needs to manually clear estopped bit for operations to continue after an e-stop event
-  registerMap.motorStatus.eStopped = true;
+    //User needs to manually clear estopped bit for operations to continue after an e-stop event
+    registerMap.motorStatus.eStopped = true;
 
-  //call accelstepper library functions and update memoryMap accordingly
-  stepper.setSpeed(0);
-  registerMap.speed = 0;
-  registerMapOld.speed = 0;
-  stepper.setMaxSpeed(0);
-  registerMap.maxSpeed = 0;
-  registerMapOld.maxSpeed = 0;
-  stepper.setAcceleration(0);
-  registerMap.acceleration = 0;
-  registerMapOld.acceleration = 0;
+    //call accelstepper library functions and update memoryMap accordingly
+    stepper.setSpeed(0);
+    registerMap.speed = 0;
+    registerMapOld.speed = 0;
+    stepper.setMaxSpeed(0);
+    registerMap.maxSpeed = 0;
+    registerMapOld.maxSpeed = 0;
+    stepper.setAcceleration(0);
+    registerMap.acceleration = 0;
+    registerMapOld.acceleration = 0;
 
-  //Disable power if user has configured motor to do so
-  if (registerMap.motorConfig.disableMotorOnEStop)
-    stepper.disableOutputs();
+    //Disable power if user has configured motor to do so
+    if (registerMap.motorConfig.disableMotorOnEStop)
+      stepper.disableOutputs();
+  }
 }
 
 //ISR for Limit Switch Input

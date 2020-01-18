@@ -59,20 +59,21 @@ typedef struct memoryMap
   configBitField motorConfig;
   controlBitField motorControl;
 
-  signed long currentPos;
-  signed long distanceToGo;
+  int32_t currentPos;
+  int32_t distanceToGo;
 
-  signed long move;
-  uint8_t enableMoveNVM; //0x59 = POR value can be written and stored in NVM
-  signed long moveTo;
+  int32_t move;
+  uint8_t unlockMoveNVM;
+  int32_t moveTo;
 
-  //the following three variables are actually floats
-  //they are declared as uint32_t because they don't behave normal in this struct
-  //please use the convertToFloat function when using
+  //The following three variables are actually floats
+  //They are declared as uint32_t because they don't behave normal in this struct
+  //Please use the convertToFloat function when using
   uint32_t maxSpeed;
   uint32_t acceleration;
   uint32_t speed;
-  uint8_t enableSpeedNVM; //0x47 = POR value can be written and stored in NVM
+
+  uint8_t unlockSpeedNVM;
 
   uint16_t holdCurrent; //Max 2000mA
   uint16_t runCurrent;  //Max 2000mA
@@ -80,4 +81,10 @@ typedef struct memoryMap
   uint8_t i2cAddress;
 
   //  uint32_t moveNVM;
+};
+
+typedef struct nvmMemoryMap
+{
+  int32_t move;
+  uint32_t speed; //Note this is a float, but communicated and stored as uint32
 };

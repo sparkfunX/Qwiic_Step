@@ -114,6 +114,10 @@ uint8_t *registerPointer = (uint8_t *)&registerMap;
 uint8_t *protectionPointer = (uint8_t *)&protectionMap;
 volatile uint8_t registerNumber; //Gets set when user writes an address. We then serve the spot the user requested.
 
+nvmMemoryMap PORsettings = {
+  0, //speed
+};
+
 //Interrupt turns on when position isReached, or limit switch is hit
 //Turns off when interrupts are cleared by command
 enum InterruptState
@@ -150,11 +154,16 @@ volatile bool newPositionValue = false; //Goes true when user has written a valu
 float previousSpeed; //Hold previous speed of motor to calculate its acceleration status
 unsigned long lastSpeedChange = 0; //Marks the time when previous speed last changed. Used to detect accel/deccel
 
+float nvmSpeed = 0; //This value is loaded from EEPROM, separate from resgisterMap. If != 0, gets loaded at POR
+
 //Define a stepper and its pins
 AccelStepper stepper(AccelStepper::DRIVER, PIN_STEP, PIN_DIRECTION); //Stepper driver, 2 pins required
 
 void setup(void)
 {
+  Serial.begin(115200);
+  Serial.println("Qwiic Step");
+
 #ifndef PRODUCTION_TARGET
   pinMode(DEBUG_PIN, OUTPUT);
   digitalWrite(DEBUG_PIN, HIGH);
@@ -185,20 +194,16 @@ void setup(void)
 
   releaseInterruptPin();
 
+  readSystemSettings(); //Load all system settings from EEPROM
+
   //Print info to Serial Monitor
 #ifndef PRODUCTION_TARGET
-  Serial.begin(115200);
-  Serial.println("Qwiic Step");
   Serial.print("Address: 0x");
   Serial.println(registerMap.i2cAddress, HEX);
-  Serial.print("Device ID: 0x");
-  Serial.println(registerMap.id, HEX);
 #endif
 
-  //  readSystemSettings(); //Load all system settings from EEPROM
-
   //Attach state-change of interrupt pins to corresponding ISRs
-  attachInterrupt(digitalPinToInterrupt(PIN_ESTOP_SWITCH), eStopTriggered, LOW);
+  attachInterrupt(digitalPinToInterrupt(PIN_ESTOP_SWITCH), eStopTriggered, FALLING);
   attachInterrupt(digitalPinToInterrupt(PIN_LIMIT_SWITCH), limitSwitchTriggered, FALLING);
 
   startI2C(); //Determine the I2C address to be using and listen on I2C bus
@@ -214,6 +219,11 @@ void loop(void)
     if (incoming == 'p')
     {
       printState();
+    }
+    else if (incoming == 'e')
+    {
+      eraseEEPROM();
+      Serial.println("EEPROM erased");
     }
     else
     {
@@ -337,9 +347,11 @@ void updateInterruptPin()
 void updateParameters()
 {
   //digitalWrite(DEBUG_PIN, HIGH);
+  bool newValueToRecord = false;
 
   if (registerMapOld.maxSpeed != registerMap.maxSpeed)
   {
+    newValueToRecord = true;
     //    Serial.print("S");
     stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
     registerMapOld.maxSpeed = registerMap.maxSpeed;
@@ -347,6 +359,7 @@ void updateParameters()
 
   if (registerMapOld.acceleration != registerMap.acceleration)
   {
+    newValueToRecord = true;
     //    Serial.print("A");
     stepper.setAcceleration(convertToFloat(registerMap.acceleration));
     registerMapOld.acceleration = registerMap.acceleration;
@@ -420,6 +433,8 @@ void updateParameters()
 
   if (registerMapOld.motorControl.disableMotor != registerMap.motorControl.disableMotor)
   {
+    newValueToRecord = true;
+
     if (registerMap.motorControl.disableMotor == true)
       stepper.disableOutputs();
     else
@@ -433,7 +448,9 @@ void updateParameters()
       || registerMapOld.motorConfig.ms3 != registerMap.motorConfig.ms3
      )
   {
-    //update the step mode by flipping pins MS1, MS2, MS3
+    newValueToRecord = true;
+
+    //Update the step mode by flipping pins MS1, MS2, MS3
     digitalWrite(PIN_MS1, registerMap.motorConfig.ms1);
     digitalWrite(PIN_MS2, registerMap.motorConfig.ms2);
     digitalWrite(PIN_MS3, registerMap.motorConfig.ms3);
@@ -443,14 +460,56 @@ void updateParameters()
     registerMapOld.motorConfig.ms3 = registerMap.motorConfig.ms3;
   }
 
-  //  //DEBUGGING
-  //digitalWrite(DEBUG_PIN, LOW);
+  if (registerMapOld.motorControl.runToPosition != registerMap.motorControl.runToPosition
+      || registerMapOld.motorControl.runToPositionWithAccel != registerMap.motorControl.runToPositionWithAccel
+      || registerMapOld.motorControl.runContinuous != registerMap.motorControl.runContinuous
+      || registerMapOld.motorControl.hardStop != registerMap.motorControl.hardStop
+     )
+  {
+    newValueToRecord = true;
 
-  //  if (registerMap.enableMoveNVM == 0x59) {
-  //    recordSystemSettings(); //record registerMap to EEPROM?
-  //    registerMap.enableMoveNVM = 0;  //clear the key
-  //  }
-}
+    registerMapOld.motorControl.runToPosition = registerMap.motorControl.runToPosition;
+    registerMapOld.motorControl.runToPositionWithAccel = registerMap.motorControl.runToPositionWithAccel;
+    registerMapOld.motorControl.runContinuous = registerMap.motorControl.runContinuous;
+    registerMapOld.motorControl.hardStop = registerMap.motorControl.hardStop;
+  }
+
+  if (registerMap.unlockMoveNVM == 0x59)
+  {
+    Serial.print("%");
+    PORsettings.move = registerMap.move;
+    recordPORsettings();
+    registerMap.unlockMoveNVM = 0;
+  }
+
+  if (registerMap.unlockSpeedNVM == 0xC4)
+  {
+    Serial.print("&");
+    PORsettings.speed = registerMap.speed;
+    recordPORsettings();
+    registerMap.unlockSpeedNVM = 0;
+  }
+
+  /*We don't want to constantly record the register map to NVM. It costs cycles
+    and can wear out the EEPROM. Thankfully EEPROM.put() automatically calls
+    update so only values that changed will be recorded. Additionally, we can be 
+    proactive and ignore all registers that will be 0 at POR:
+      * status
+      * currentPos
+      * distanceToGo
+      * move
+      * unlockMoveNVM
+      * moveTo
+      * speed
+      * unlockSpeedNVM
+  */
+  if (newValueToRecord == true)
+  {
+    recordRegisterMap();
+  }
+
+  //digitalWrite(DEBUG_PIN, LOW);
+} //End updateParameters()
 
 //Called from I2C respond interrupt. Right before we push requested I2C data out to the bus
 //As the accel library updates values, push them to the register map (isAccelerating, currentPos, isReached, etc bits)
@@ -503,31 +562,59 @@ void updateRegisterMap()
     previousSpeed = currentSpeed;
     lastSpeedChange = millis();
   }
+} //End updateRegisterMap()
 
-
+void recordRegisterMap()
+{
+  Serial.print("#");
+  EEPROM.put(0, registerMap);
 }
 
-//void recordSystemSettings()
-//{
-//  EEPROM.put(0x00, registerMap);
-//}
-//
-//void readSystemSettings()
-//{
-//  //Check to see if EEPROM is blank
-//  uint32_t EEPROM_check;
-//
-//  EEPROM.get(0x00, EEPROM_check);
-//  if (EEPROM_check == 0xFFFFFFFF) {  //EEPROM has not been written to yet
-//    recordSystemSettings(); //record default settings to EEPROM
-//  }
-//
-//  EEPROM.get(0, registerMap);
-//
-//  if (registerMap.enableMoveNVM != 0x59) {
-//    registerMap.move = 0;
-//  }
-//  else {
-//    updateFlag = true;    //initiate move to NVM stored value
-//  }
-//}
+void recordPORsettings()
+{
+  Serial.print("?");
+  EEPROM.put(100, PORsettings);
+}
+
+void readSystemSettings()
+{
+  //Check to see if EEPROM is blank
+  uint32_t EEPROM_check;
+  EEPROM.get(0, EEPROM_check);
+  if (EEPROM_check == 0xFFFFFFFF) {  //EEPROM has not been written to yet
+    recordRegisterMap(); //Record default settings to EEPROM
+  }
+
+  EEPROM.get(0, registerMap);
+
+  //Zero out the registers that must be 0 at POR
+  registerMap.unlockMoveNVM = 0;
+  registerMap.unlockSpeedNVM = 0;
+  registerMap.move = 0;
+  registerMap.speed = 0;
+  registerMap.currentPos = 0;
+  registerMap.distanceToGo = 0;
+
+  //Deal with the special POR settings
+  //Check to see if EEPROM is blank
+  EEPROM.get(100, EEPROM_check);
+  if (EEPROM_check == 0xFFFFFFFF) {  //EEPROM has not been written to yet
+    recordPORsettings(); //Record default settings to EEPROM
+  }
+  
+  EEPROM.get(100, PORsettings);
+  if (PORsettings.move != 0) registerMap.move = PORsettings.move;
+  if (PORsettings.speed != 0) registerMap.speed = PORsettings.speed;
+
+  //Pass these new settings back into the library
+  updateParameters();
+}
+
+//Clear the EEPROM
+void eraseEEPROM()
+{
+  for(byte x = 0 ; x < 120 ; x++)
+  {
+    EEPROM.put(x, 0xFF);
+  }
+}
