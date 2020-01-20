@@ -109,7 +109,7 @@ void updateParameters()
   //0x13 unlock Move NVM register
   if (registerMap.unlockMoveNVM == 0x59)
   {
-//    Serial.print("%");
+    //    Serial.print("%");
     PORsettings.move = registerMap.move;
     recordPORsettings();
     registerMap.unlockMoveNVM = 0;
@@ -186,6 +186,9 @@ void updateParameters()
   {
     newValueToRecord = true;
     registerMapOld.i2cAddress = registerMap.i2cAddress;
+
+    PORsettings.i2cAddressState = ADR_STATE_SOFTWARE;
+    recordPORsettings();
   }
 
   /*We don't want to constantly record the register map to NVM. It costs cycles

@@ -87,4 +87,5 @@ typedef struct nvmMemoryMap
 {
   int32_t move;
   uint32_t speed; //Note this is a float, but communicated and stored as uint32
+  uint8_t i2cAddressState;
 };

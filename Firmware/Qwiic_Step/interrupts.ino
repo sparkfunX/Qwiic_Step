@@ -21,27 +21,32 @@ void receiveEvent(int numberOfBytesReceived)
       *(registerPointer + registerNumber + x) |= temp & *(protectionPointer + registerNumber + x); //Or in the user's request (clensed against protection bits)
     }
   }
+
   digitalWrite(DEBUG_PIN, LOW);
 
-  //See if user has written a new Move value
-  //Because Move is relative, we cannot simply tell by the value in the register. ie, the user might write 400, then 400 again.
-  //We would need to move 400 steps, then another 400.
-  //We also need to make sure the user is not sending us a 'read the Move register' command. So we check that the bytes received are greater than 1.
-  if (registerNumber <= offsetof(struct memoryMap, move) && (registerNumber + numberOfBytesReceived) > (offsetof(struct memoryMap, move) + sizeof(registerMap.move)))
+  //One byte received is simply the master setting the registerNumber
+  if (numberOfBytesReceived > 1)
   {
-    newMoveValue = true;
-  }
+    //See if user has written a new Move value
+    //Because Move is relative, we cannot simply tell by the value in the register. ie, the user might write 400, then 400 again.
+    //We would need to move 400 steps, then another 400.
+    //We also need to make sure the user is not sending us a 'read the Move register' command. So we check that the bytes received are greater than 1.
+    if (registerNumber <= offsetof(struct memoryMap, move) && (registerNumber + numberOfBytesReceived) > (offsetof(struct memoryMap, move) + sizeof(registerMap.move)))
+    {
+      newMoveValue = true;
+    }
 
-  //When the user writes a *new* value to currentPosition we need to pass it along to the library
-  //The new value may be the same as the value currently in the register map. For example, regMap may contain
-  //0. User moves the motor a bunch, then writes 0 to currentPos. The value is the same, but we need to update
-  //the library and set its currentPosition to 0.
-  if (registerNumber <= offsetof(struct memoryMap, currentPos) && (registerNumber + numberOfBytesReceived) > (offsetof(struct memoryMap, currentPos) + sizeof(registerMap.currentPos)))
-  {
-    newPositionValue = true;
-  }
+    //When the user writes a *new* value to currentPosition we need to pass it along to the library
+    //The new value may be the same as the value currently in the register map. For example, regMap may contain
+    //0. User moves the motor a bunch, then writes 0 to currentPos. The value is the same, but we need to update
+    //the library and set its currentPosition to 0.
+    if (registerNumber <= offsetof(struct memoryMap, currentPos) && (registerNumber + numberOfBytesReceived) > (offsetof(struct memoryMap, currentPos) + sizeof(registerMap.currentPos)))
+    {
+      newPositionValue = true;
+    }
 
-  updateParameters(); //Pass any new speed, accel, etc values to the library
+    updateParameters(); //Pass any new speed, accel, etc values to the library
+  }
 
   digitalWrite(DEBUG_PIN, HIGH);
 }

@@ -43,18 +43,41 @@ void setInterruptPin()
 //Registers the receive and request I2C interrupt handlers
 void startI2C()
 {
+  //Based on the PORsettings, figure out what I2C address state we're in
+  if (PORsettings.i2cAddressState == ADR_STATE_SOFTWARE)
+  {
+    if (digitalRead(PIN_ADDRESS) == LOW) //Jumper is closed
+    {
+      //Change states
+      PORsettings.i2cAddressState = ADR_STATE_JUMPER;
+      recordPORsettings();
+    }
+  }
+  else if (PORsettings.i2cAddressState == ADR_STATE_JUMPER)
+  {
+    if(digitalRead(PIN_ADDRESS) == HIGH) //Jumper open
+    {
+      //Change states
+      PORsettings.i2cAddressState = ADR_STATE_SOFTWARE;
+      recordPORsettings();
+    }
+  }
+
+  //Based on I2C Address state, pick our address
   uint8_t address;
-
-  //TODO: Need to handle address jumper here.
-
-  //Check if the address stored in memoryMap is valid
-  if (registerMap.i2cAddress > 0x07 && registerMap.i2cAddress < 0x78)
-    address = registerMap.i2cAddress;
-  else //If the value is illegal, default to the default I2C address for our platform
-    address = DEFAULT_I2C_ADDRESS;
-
-  //Save new address to the register map
-  registerMap.i2cAddress = address;
+if (PORsettings.i2cAddressState == ADR_STATE_SOFTWARE)
+  {
+    //Check if the address stored in memoryMap is valid
+    if (registerMap.i2cAddress > 0x07 && registerMap.i2cAddress < 0x78)
+      address = registerMap.i2cAddress;
+    else //If the value is illegal, default to the default I2C address
+      address = I2C_ADDRESS_DEFAULT;
+  }
+  else if (PORsettings.i2cAddressState == ADR_STATE_JUMPER)
+  {
+    address = I2C_ADDRESS_FORCED; //Force address to I2C_ADDRESS_FORCED if user has closed the solder jumper
+    registerMap.i2cAddress = address;
+  }
 
   Wire.end();
   Wire.begin(address); //Rejoin the I2C bus on new address

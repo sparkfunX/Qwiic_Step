@@ -9,7 +9,8 @@
 
 #define DEVICE_ID 0x60
 #define FIRMWARE_VERSION 0x0100
-#define DEFAULT_I2C_ADDRESS 0x52
+#define I2C_ADDRESS_DEFAULT 0x52
+#define I2C_ADDRESS_FORCED 0x51
 #define LOCATION_REGISTERMAP 0 //Location in EEPROM. Map is ~41 bytes currently.
 #define LOCATION_PORSETTINGS 100 //Location in EEPROM for POR settings (for headless operation).
 
@@ -23,7 +24,7 @@ const uint8_t PIN_DIRECTION = 6;
 const uint8_t PIN_MS1 = 9;
 const uint8_t PIN_MS2 = 8;
 const uint8_t PIN_MS3 = 7;
-const uint8_t addressPin = 11;
+const uint8_t PIN_ADDRESS = 11;
 const uint8_t PIN_MAXCURRENT_PWM = 5;
 const uint8_t PIN_CRRENT_SENSE = A6;
 const uint8_t PIN_A49885_RESET = 4;  //May not be needed
@@ -39,6 +40,7 @@ const uint8_t PIN_MS1 = 4;
 const uint8_t PIN_MS2 = 5;
 const uint8_t PIN_MS3 = 6;
 const uint8_t PIN_MAXCURRENT_PWM = 5;
+const uint8_t PIN_ADDRESS = 9;
 const uint8_t PIN_ESTOP_SWITCH = 2; //E-stop
 const uint8_t PIN_LIMIT_SWITCH = 3; //Limit switch
 const uint8_t PIN_INT_OUTPUT = A1;
@@ -62,7 +64,7 @@ volatile memoryMap registerMap {
   0x00,                //unlockSpeedNVM
   0x0000,              //holdCurrent
   0x0000,              //runCurrent
-  DEFAULT_I2C_ADDRESS, //i2cAddress
+  I2C_ADDRESS_DEFAULT, //i2cAddress
 };
 
 //this memory map holds temporary "old" values so we don't call accelstepper functions an unnecessary amount of times
@@ -84,7 +86,7 @@ volatile memoryMap registerMapOld {
   0x00,                //unlockSpeedNVM
   0x0000,              //holdCurrent
   0x0000,              //runCurrent
-  DEFAULT_I2C_ADDRESS, //i2cAddress
+  I2C_ADDRESS_DEFAULT, //i2cAddress
 };
 
 //This defines which of the registers are read-only (0) vs read-write (1)
@@ -115,7 +117,9 @@ uint8_t *protectionPointer = (uint8_t *)&protectionMap;
 volatile uint8_t registerNumber; //Gets set when user writes an address. We then serve the spot the user requested.
 
 nvmMemoryMap PORsettings = {
+  0, //move
   0, //speed
+  0, //i2cAddressState
 };
 
 //Interrupt turns on when position isReached, or limit switch is hit
@@ -148,6 +152,15 @@ enum LimitState
 };
 volatile byte limitState = LIMIT_STATE_NOT_LIMITED;
 
+//State machine for the I2C Address
+//User can set via software command or hardware jumper
+enum ADRState
+{
+  ADR_STATE_SOFTWARE = 0,
+  ADR_STATE_JUMPER,
+};
+volatile byte adrState = ADR_STATE_SOFTWARE;
+
 volatile bool newData = false; //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
 volatile bool newMoveValue = false; //Goes true when user has written a value to the move register
 volatile bool newPositionValue = false; //Goes true when user has written a value to the currentPos register
@@ -164,43 +177,11 @@ void setup(void)
   Serial.begin(115200);
   Serial.println("Qwiic Step");
 
-#ifndef PRODUCTION_TARGET
-  pinMode(DEBUG_PIN, OUTPUT);
-  digitalWrite(DEBUG_PIN, HIGH);
-#endif
-
-  //Motor config pins are all outputs
-
-  pinMode(PIN_MS1, OUTPUT);
-  pinMode(PIN_MS2, OUTPUT);
-  pinMode(PIN_MS3, OUTPUT);
-
-  //Default to full step mode
-  digitalWrite(PIN_MS1, LOW);
-  digitalWrite(PIN_MS2, LOW);
-  digitalWrite(PIN_MS3, LOW);
-
-  //    pinMode(addressPin, INPUT_PULLUP);
-  //    pinMode(curr_ref_pwm, OUTPUT);
-  //    pinMode(curr_sense, INPUT);
-  //    pinMode(a49885_reset, OUTPUT);
-
-  pinMode(PIN_ESTOP_SWITCH, INPUT_PULLUP); //E-Stop
-  pinMode(PIN_LIMIT_SWITCH, INPUT_PULLUP); //Limit Switch
-
-  stepper.setEnablePin(PIN_ENABLE);
-  stepper.setPinsInverted(false, false, true); //Invert enable
-  stepper.enableOutputs();
+  setupGPIO();
 
   releaseInterruptPin();
 
   readSystemSettings(); //Load all system settings from EEPROM
-
-  //Print info to Serial Monitor
-#ifndef PRODUCTION_TARGET
-  Serial.print("Address: 0x");
-  Serial.println(registerMap.i2cAddress, HEX);
-#endif
 
   //Attach state-change of interrupt pins to corresponding ISRs
   attachInterrupt(digitalPinToInterrupt(PIN_ESTOP_SWITCH), eStopTriggered, FALLING);
@@ -209,6 +190,12 @@ void setup(void)
   analogWrite(PIN_MAXCURRENT_PWM, registerMap.holdCurrent);
 
   startI2C(); //Determine the I2C address to be using and listen on I2C bus
+
+#ifndef PRODUCTION_TARGET
+  Serial.print("Address: 0x");
+  Serial.println(registerMap.i2cAddress, HEX);
+#endif
+
 }
 
 void loop(void)
@@ -256,6 +243,36 @@ void loop(void)
       //Do nothing. This will cause motor to hold in place.
     }
   }
+}
+
+//Set the initial state of various GPIOs
+void setupGPIO()
+{
+#ifndef PRODUCTION_TARGET
+  pinMode(DEBUG_PIN, OUTPUT);
+  digitalWrite(DEBUG_PIN, HIGH);
+#endif
+
+  //Default to full step mode for now
+  pinMode(PIN_MS1, OUTPUT);
+  pinMode(PIN_MS2, OUTPUT);
+  pinMode(PIN_MS3, OUTPUT);
+  digitalWrite(PIN_MS1, LOW);
+  digitalWrite(PIN_MS2, LOW);
+  digitalWrite(PIN_MS3, LOW);
+
+  pinMode(PIN_ADDRESS, INPUT_PULLUP);
+  pinMode(PIN_ESTOP_SWITCH, INPUT_PULLUP); //E-Stop
+  pinMode(PIN_LIMIT_SWITCH, INPUT_PULLUP); //Limit Switch
+
+  //    pinMode(curr_ref_pwm, OUTPUT);
+  //    pinMode(curr_sense, INPUT);
+  //    pinMode(a49885_reset, OUTPUT);
+
+  stepper.setEnablePin(PIN_ENABLE);
+  stepper.setPinsInverted(false, false, true); //Invert enable
+  stepper.enableOutputs();
+  
 }
 
 void updateCurrents()
