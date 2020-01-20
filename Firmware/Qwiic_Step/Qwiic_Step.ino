@@ -10,6 +10,8 @@
 #define DEVICE_ID 0x60
 #define FIRMWARE_VERSION 0x0100
 #define DEFAULT_I2C_ADDRESS 0x52
+#define LOCATION_REGISTERMAP 0 //Location in EEPROM. Map is ~41 bytes currently.
+#define LOCATION_PORSETTINGS 100 //Location in EEPROM for POR settings (for headless operation).
 
 //#define PRODUCTION_TARGET 1 //Uncomment to use the production code
 

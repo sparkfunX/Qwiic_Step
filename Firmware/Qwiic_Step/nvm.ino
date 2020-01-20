@@ -1,25 +1,23 @@
 void recordRegisterMap()
 {
-  Serial.print("#");
-  EEPROM.put(0, registerMap);
+  EEPROM.put(LOCATION_REGISTERMAP, registerMap);
 }
 
 void recordPORsettings()
 {
-  Serial.print("?");
-  EEPROM.put(100, PORsettings);
+  EEPROM.put(LOCATION_PORSETTINGS, PORsettings);
 }
 
 void readSystemSettings()
 {
   //Check to see if EEPROM is blank
   uint32_t EEPROM_check;
-  EEPROM.get(0, EEPROM_check);
+  EEPROM.get(LOCATION_REGISTERMAP, EEPROM_check);
   if (EEPROM_check == 0xFFFFFFFF) {  //EEPROM has not been written to yet
     recordRegisterMap(); //Record default settings to EEPROM
   }
 
-  EEPROM.get(0, registerMap);
+  EEPROM.get(LOCATION_REGISTERMAP, registerMap);
 
   //Zero out the registers that must be 0 at POR
   registerMap.unlockMoveNVM = 0;
@@ -31,12 +29,12 @@ void readSystemSettings()
 
   //Deal with the special POR settings
   //Check to see if EEPROM is blank
-  EEPROM.get(100, EEPROM_check);
+  EEPROM.get(LOCATION_PORSETTINGS, EEPROM_check);
   if (EEPROM_check == 0xFFFFFFFF) {  //EEPROM has not been written to yet
     recordPORsettings(); //Record default settings to EEPROM
   }
 
-  EEPROM.get(100, PORsettings);
+  EEPROM.get(LOCATION_PORSETTINGS, PORsettings);
   if (PORsettings.move != 0)
   {
     registerMap.move = PORsettings.move;

@@ -83,6 +83,7 @@ void printState()
     Serial.print(" (isReachedEnable)");
   if (registerMap.interruptConfig.isLimitedInterruptEnable)
     Serial.print(" (isLimitedEnable)");
+  Serial.println();
 //  Serial.println(*(registerPointer + 3), HEX);
 
   Serial.print("Motor Status:");
