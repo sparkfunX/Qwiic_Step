@@ -18,7 +18,11 @@ float convertToFloat(uint32_t myVal)
 void releaseInterruptPin()
 {
   digitalWrite(PIN_INT_OUTPUT, LOW);  //Push pin to disable internal pull-ups
-  pinMode(PIN_INT_OUTPUT, INPUT);     //Go to high impedance
+#ifndef PRODUCTION_TARGET
+  pinMode(PIN_INT_OUTPUT, INPUT); //In production we should rely on external 10k pullup
+#elif
+  pinMode(PIN_INT_OUTPUT, INPUT_PULLUP);
+#endif
   interruptState = INT_STATE_CLEARED; //Go to next state
 }
 
@@ -74,16 +78,35 @@ void printState()
     Serial.print("0");
   Serial.println(*(registerPointer + 1), HEX);
 
-  Serial.print("Interrupt enable: 0x");
-  Serial.println(*(registerPointer + 3), HEX);
+  Serial.print("Interrupt Config: 0x");
+  if (registerMap.interruptConfig.isReachedInterruptEnable)
+    Serial.print(" (isReachedEnable)");
+  if (registerMap.interruptConfig.isLimitedInterruptEnable)
+    Serial.print(" (isLimitedEnable)");
+//  Serial.println(*(registerPointer + 3), HEX);
 
-  Serial.print("Motor status: 0x");
-  Serial.println(*(registerPointer + 4), HEX);
+  Serial.print("Motor Status:");
+  if (registerMap.motorStatus.isRunning)
+    Serial.print(" (isRunning)");
+  else
+    Serial.print(" (Stopped)");
+  if (registerMap.motorStatus.isAccelerating)
+    Serial.print(" (isAccelerating)");
+  if (registerMap.motorStatus.isDecelerating)
+    Serial.print(" (isDecelerating)");
+  if (registerMap.motorStatus.isReached)
+    Serial.print(" (isReached)");
+  if (registerMap.motorStatus.isLimited)
+    Serial.print(" (isLimited)");
+  if (registerMap.motorStatus.eStopped)
+    Serial.print(" (isEStopped)");
+  Serial.println();
+  //  Serial.println(*(registerPointer + 4), HEX);
 
-  Serial.print("Device config: 0x");
+  Serial.print("Motor Config: 0x");
   Serial.println(*(registerPointer + 5), HEX);
 
-  Serial.print("Motor config: ");
+  Serial.print("Motor Mode: ");
   if (registerMap.motorControl.runToPosition == true) Serial.print("runToPos");
   else if (registerMap.motorControl.runToPositionWithAccel == true) Serial.print("runToPosWithAccel");
   else if (registerMap.motorControl.runContinuous == true) Serial.print("runContinuous");
@@ -133,7 +156,7 @@ void printState()
     Serial.print("0");
   Serial.println(*(registerPointer + 0xF), HEX);
 
-  Serial.print("Enable move NVM: 0x");
+  Serial.print("Unlock move NVM: 0x");
   Serial.println(*(registerPointer + 0x13), HEX);
 
   Serial.print("Move to: 0x");
