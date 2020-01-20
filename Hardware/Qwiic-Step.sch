@@ -14741,12 +14741,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <sheet>
 <plain>
 <text x="2.54" y="33.02" size="1.4224" layer="97">8 to 35V DC</text>
-<text x="2.286" y="68.58" size="1.4224" layer="97">Current pot adjusts max coil current:
-Full clockwise = 2.08A coil current
-Note driver can only output 2A coil current,
-and is dependent on input voltage, motor,
-and heat sinking/fan to reach this.</text>
-<text x="94.488" y="20.32" size="1.4224" layer="97">3.5mm Screw Terminal</text>
+<text x="99.568" y="22.86" size="1.4224" layer="97">Latch Terminal</text>
 <text x="58.42" y="177.8" size="2.54" layer="97" align="center">Stepper Driver</text>
 <text x="101.6" y="58.42" size="2.54" layer="97" align="center">Connections</text>
 <text x="30.48" y="101.6" size="2.54" layer="97" align="center">Max Coil Current</text>
@@ -14763,11 +14758,15 @@ and heat sinking/fan to reach this.</text>
 <text x="128.143" y="77.851" size="1.778" layer="97" rot="R90">Power</text>
 <text x="66.04" y="10.16" size="1.27" layer="97">TXO</text>
 <text x="66.04" y="7.62" size="1.27" layer="97">RXI</text>
-<text x="86.36" y="53.34" size="1.27" layer="97">Qwiic Connectors</text>
 <text x="208.28" y="55.88" size="1.4224" layer="97">Limit switch</text>
 <text x="180.34" y="55.88" size="1.4224" layer="97">E-stop</text>
-<text x="2.54" y="20.32" size="1.4224" layer="97">3.5mm Screw Terminal</text>
 <text x="171.196" y="11.43" size="2.54" layer="94">Priyanka Makin</text>
+<text x="119.888" y="17.78" size="1.4224" layer="97">External Interrupt Pin</text>
+<text x="99.568" y="22.86" size="1.4224" layer="97">Latch Terminal</text>
+<text x="99.568" y="22.86" size="1.4224" layer="97">Latch Terminal</text>
+<text x="74.168" y="25.4" size="1.4224" layer="97">Programming</text>
+<text x="86.868" y="53.34" size="1.4224" layer="97">Qwiic Connectors</text>
+<text x="3.048" y="20.32" size="1.4224" layer="97">Latch Terminal</text>
 </plain>
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0" smashed="yes"/>
@@ -15956,10 +15955,6 @@ and heat sinking/fan to reach this.</text>
 </schematic>
 </drawing>
 <compatibility>
-<note version="6.3" minversion="6.2.2" severity="warning">
-Since Version 6.2.2 text objects can contain more than one line,
-which will not be processed correctly with this version.
-</note>
 <note version="8.3" severity="warning">
 Since Version 8.3, EAGLE supports URNs for individual library
 assets (packages, symbols, and devices). The URNs of those assets
