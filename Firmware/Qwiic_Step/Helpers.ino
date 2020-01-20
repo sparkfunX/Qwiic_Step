@@ -49,6 +49,7 @@ void startI2C()
     if (digitalRead(PIN_ADDRESS) == LOW) //Jumper is closed
     {
       //Change states
+      Serial.println("I2C in jumper state");
       PORsettings.i2cAddressState = ADR_STATE_JUMPER;
       recordPORsettings();
     }
@@ -58,6 +59,7 @@ void startI2C()
     if(digitalRead(PIN_ADDRESS) == HIGH) //Jumper open
     {
       //Change states
+      Serial.println("I2C in software state");
       PORsettings.i2cAddressState = ADR_STATE_SOFTWARE;
       recordPORsettings();
     }

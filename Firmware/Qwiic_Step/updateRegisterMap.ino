@@ -19,13 +19,29 @@ void updateRegisterMap()
     {
       if (previousSpeed < currentSpeed)
       {
-        registerMap.motorStatus.isAccelerating = true;
-        registerMap.motorStatus.isDecelerating = false;
+        if (registerMap.distanceToGo > 0)
+        {
+          registerMap.motorStatus.isAccelerating = true;
+          registerMap.motorStatus.isDecelerating = false;
+        }
+        else
+        {
+          registerMap.motorStatus.isAccelerating = false;
+          registerMap.motorStatus.isDecelerating = true;
+        }
       }
       else if (previousSpeed > currentSpeed)
       {
-        registerMap.motorStatus.isAccelerating = false;
-        registerMap.motorStatus.isDecelerating = true;
+        if (registerMap.distanceToGo > 0)
+        {
+          registerMap.motorStatus.isAccelerating = false;
+          registerMap.motorStatus.isDecelerating = true;
+        }
+        else
+        {
+          registerMap.motorStatus.isAccelerating = true;
+          registerMap.motorStatus.isDecelerating = false;
+        }
       }
       else
       {
