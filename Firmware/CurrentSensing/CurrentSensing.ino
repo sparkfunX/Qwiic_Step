@@ -8,10 +8,12 @@
 #define MS3 7
 
 #define CURRENT_REFERENCE 5  //PWM capable pin
-#define CURRENT_SENSE A6    //ADC pin
+//#define CURRENT_SENSE A6    //ADC pin
+#define CURRENT_SENSE A7  //NEW hacked current sensor ADC pin
 
 AccelStepper stepper(AccelStepper::DRIVER, STEP, DIRECTION); 
 
+int adc_out;
 int v_out;
 float v_sense;
 float i_sense;
@@ -25,11 +27,13 @@ void setup()
 {
   Serial.begin(115200);
   Serial.println("SparkFun Stepper Example");
-
+  
   delay(5); //Wait for Easy Driver to wake up
 
   pinMode(ENABLE, OUTPUT);
   digitalWrite(ENABLE, LOW);
+
+  pinMode(A7, INPUT);
 
   pinMode(MS1, OUTPUT);
   pinMode(MS2, OUTPUT);
@@ -47,25 +51,62 @@ void setup()
   r_sense = 0.25; 
 
   //PWM signal of 0.1V at current reference pin
-  int duty_cycle = (1/3.3) * 255;
+  int duty_cycle = (1/3.3) * 255; //
+//  int duty_cycle = (1.7/3.3) * 255; //.724mA
+//  int duty_cycle = (1.7/3.3) * 255; //
+//  int duty_cycle = (1.7/3.3) * 255;
+//  int duty_cycle = (1.7/3.3) * 255;
+//  int duty_cycle = (1.7/3.3) * 255;
+//  int duty_cycle = (1.7/3.3) * 255;
   analogWrite(CURRENT_REFERENCE, duty_cycle);
 }
 
+#define numberOfSamples 16
+int sense[numberOfSamples] = {0};
+byte senseSpot = 0;
+
 void loop()
 {
-  v_out = analogRead(CURRENT_SENSE);
-  v_sense = v_out/5;
-  i_sense = v_sense/r_sense;
+  adc_out = analogRead(CURRENT_SENSE);
+  sense[senseSpot++] = adc_out;
+//  if (senseSpot == numberOfSamples)
+//    senseSpot = 0;  //6806
 
-  sum += v_out;
-  avg = sum / n;
+  senseSpot %= numberOfSamples;  //6796
 
-//  Serial.print("This is v_out: ");
-  Serial.println(avg);
+  Serial.print(adc_out);
+  Serial.print("\t");
+
+  int adcAverage = avgOfSamples();
+
+  Serial.print(adcAverage);
+  Serial.print("\t");
+
+  float adcMV = (adcAverage * 1000 * 3.3) / 1023;
+  float adcMA = adcMV / 0.11;
+  
+  Serial.print(adcMV);
+  Serial.print("\t");
+
+  Serial.print(adcMA);
+  Serial.print("\t");
+
+  
+  Serial.println();
+  
 //  Serial.print("This is the sense current: ");
 //  Serial.println(i_sense);
   
   stepper.runSpeed();
   delay(1);
   n++;
+}
+
+int avgOfSamples(){
+  uint16_t sum = 0;
+  for (int i = 0; i < numberOfSamples; i++){
+    sum += sense[i];
+  }
+  sum /= numberOfSamples;
+  return sum;
 }

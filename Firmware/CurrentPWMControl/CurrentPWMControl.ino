@@ -31,12 +31,13 @@ void setup()
   digitalWrite(MS3, LOW);
 
   stepper.setMaxSpeed(1000);
-  stepper.setSpeed(600);
+  stepper.setSpeed(400);
 
   //PWM signal of 1.7V at current reference pin
   //NOTE: I think 1.7V on the A49885 VREF pin corresponds to ~2A run current
-  int duty_cycle = (1.7/3.3) * 255;
+  int duty_cycle = (1/3.3) * 255;
   analogWrite(CURRENT_REFERENCE, duty_cycle);
+  Serial.println(duty_cycle);
 }
 
 void loop()
