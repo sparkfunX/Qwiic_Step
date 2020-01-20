@@ -14,28 +14,32 @@ void updateRegisterMap()
   {
     registerMap.motorStatus.isRunning = true;
 
-    if (previousSpeed < currentSpeed)
+    //We only need to determine accel/decel if we are in the runWithAcceleration mode
+    if (registerMap.motorControl.runToPositionWithAccel == true)
     {
-      registerMap.motorStatus.isAccelerating = true;
-      registerMap.motorStatus.isDecelerating = false;
-    }
-    else if (previousSpeed > currentSpeed)
-    {
-      registerMap.motorStatus.isAccelerating = false;
-      registerMap.motorStatus.isDecelerating = true;
-    }
-    else
-    {
-      //The previous speed is same as current speed
-      //But we may still be in the middle of a slow accel/decel
-      //This method checks to see if more than 250ms have gone by without change
-      //It's a bit brittle but I don't know of a better way
-      if (millis() - lastSpeedChange > 250)
+      if (previousSpeed < currentSpeed)
       {
-        registerMap.motorStatus.isAccelerating = false;
+        registerMap.motorStatus.isAccelerating = true;
         registerMap.motorStatus.isDecelerating = false;
       }
-    }
+      else if (previousSpeed > currentSpeed)
+      {
+        registerMap.motorStatus.isAccelerating = false;
+        registerMap.motorStatus.isDecelerating = true;
+      }
+      else
+      {
+        //The previous speed is same as current speed
+        //But we may still be in the middle of a slow accel/decel
+        //This method checks to see if more than 250ms have gone by without change
+        //It's a bit brittle but I don't know of a better way
+        if (millis() - lastSpeedChange > 250)
+        {
+          registerMap.motorStatus.isAccelerating = false;
+          registerMap.motorStatus.isDecelerating = false;
+        }
+      }
+    }// End runToPositionWithAccel check
   }
   else
   {

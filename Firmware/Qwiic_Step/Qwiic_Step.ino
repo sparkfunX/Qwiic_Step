@@ -220,6 +220,7 @@ void loop(void)
 
     if (incoming == 'p')
     {
+      updateRegisterMap();
       printState();
     }
     else if (incoming == 'e')
