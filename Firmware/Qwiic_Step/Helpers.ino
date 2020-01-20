@@ -18,11 +18,15 @@ float convertToFloat(uint32_t myVal)
 void releaseInterruptPin()
 {
   digitalWrite(PIN_INT_OUTPUT, LOW);  //Push pin to disable internal pull-ups
-#ifndef PRODUCTION_TARGET
+
+#ifdef PRODUCTION_TARGET
+  Serial.println("INT now input");
   pinMode(PIN_INT_OUTPUT, INPUT); //In production we should rely on external 10k pullup
-#elif
+#else
+  Serial.println("INT High with pullup");
   pinMode(PIN_INT_OUTPUT, INPUT_PULLUP);
 #endif
+
   interruptState = INT_STATE_CLEARED; //Go to next state
 }
 
@@ -78,13 +82,13 @@ void printState()
     Serial.print("0");
   Serial.println(*(registerPointer + 1), HEX);
 
-  Serial.print("Interrupt Config: 0x");
+  Serial.print("Interrupt Config:");
   if (registerMap.interruptConfig.isReachedInterruptEnable)
     Serial.print(" (isReachedEnable)");
   if (registerMap.interruptConfig.isLimitedInterruptEnable)
     Serial.print(" (isLimitedEnable)");
   Serial.println();
-//  Serial.println(*(registerPointer + 3), HEX);
+  //  Serial.println(*(registerPointer + 3), HEX);
 
   Serial.print("Motor Status:");
   if (registerMap.motorStatus.isRunning)

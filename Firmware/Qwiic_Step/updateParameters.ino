@@ -109,7 +109,7 @@ void updateParameters()
   //0x13 unlock Move NVM register
   if (registerMap.unlockMoveNVM == 0x59)
   {
-    Serial.print("%");
+//    Serial.print("%");
     PORsettings.move = registerMap.move;
     recordPORsettings();
     registerMap.unlockMoveNVM = 0;

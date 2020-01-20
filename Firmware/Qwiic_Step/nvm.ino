@@ -1,10 +1,12 @@
 void recordRegisterMap()
 {
+  Serial.print("#");
   EEPROM.put(LOCATION_REGISTERMAP, registerMap);
 }
 
 void recordPORsettings()
 {
+  Serial.print("?");
   EEPROM.put(LOCATION_PORSETTINGS, PORsettings);
 }
 

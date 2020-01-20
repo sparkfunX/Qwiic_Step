@@ -78,7 +78,6 @@ void updateInterruptPin()
          && (limitState == LIMIT_STATE_LIMITED_CLEARED || limitState == LIMIT_STATE_NOT_LIMITED)
        )
     {
-      Serial.println("INT High");
       releaseInterruptPin(); //Move to INT_STATE_CLEARED state
     }
   }
