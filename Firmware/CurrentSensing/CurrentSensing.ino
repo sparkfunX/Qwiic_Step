@@ -51,7 +51,7 @@ void setup()
   r_sense = 0.25; 
 
   //PWM signal of 0.1V at current reference pin
-  int duty_cycle = (2.7/3.3) * 255;
+  int duty_cycle = (2/3.3) * 255;
   analogWrite(CURRENT_REFERENCE, duty_cycle);
 }
 
