@@ -189,6 +189,8 @@ void updateParameters()
 
     PORsettings.i2cAddressState = ADR_STATE_SOFTWARE;
     recordPORsettings();
+
+    startI2C(); //Begin operating at this new address
   }
 
   /*We don't want to constantly record the register map to NVM. It costs cycles

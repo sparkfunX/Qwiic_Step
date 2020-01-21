@@ -29,7 +29,10 @@ void updateInterruptPin()
 
       //Do we need to disable the motor?
       if (registerMap.motorConfig.disableMotorOnPositionReached == true)
+      {
         stepper.disableOutputs();
+        registerMap.motorControl.disableMotor = true;
+      }
 
     } //We do not clear the isReached bit. The user must actively clear it which will clear the interrupt as well.
   }
@@ -81,4 +84,30 @@ void updateInterruptPin()
       releaseInterruptPin(); //Move to INT_STATE_CLEARED state
     }
   }
+}
+
+//This will set the int pin to high impedance (aka pulled high by external resistor)
+void releaseInterruptPin()
+{
+  digitalWrite(PIN_INT_OUTPUT, LOW);  //Push pin to disable internal pull-ups
+
+#ifdef PRODUCTION_TARGET
+  pinMode(PIN_INT_OUTPUT, INPUT); //In production we should rely on external 10k pullup
+  Serial.println("INT High with external pullup");
+#else
+  pinMode(PIN_INT_OUTPUT, INPUT_PULLUP);
+  Serial.println("INT High with pullup");
+#endif
+
+  interruptState = INT_STATE_CLEARED; //Go to next state
+}
+
+void setInterruptPin()
+{
+  //Set the interrupt pin low to indicate interrupt
+  pinMode(PIN_INT_OUTPUT, OUTPUT);
+  digitalWrite(PIN_INT_OUTPUT, LOW);
+  interruptState = INT_STATE_INDICATED;
+
+  Serial.println("INT pulled low");
 }

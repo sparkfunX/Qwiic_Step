@@ -1,4 +1,4 @@
-#define TWI_BUFFER_LENGTH BUFFER_LENGTH // this is because Arduino is dumb
+#define TWI_BUFFER_LENGTH BUFFER_LENGTH
 
 //Respond to write commands
 //When board receives data bytes from Master this function is called as an interrupt
@@ -71,26 +71,17 @@ void eStopTriggered()
   delay(20);
   if (digitalRead(PIN_ESTOP_SWITCH) == LOW)
   {
-    //Setting the hard stop bit will prevent any future moves of the stepper
-    registerMap.motorControl.hardStop = true;
+    hardStop();
 
     //User needs to manually clear estopped bit for operations to continue after an e-stop event
     registerMap.motorStatus.eStopped = true;
 
-    //call accelstepper library functions and update memoryMap accordingly
-    stepper.setSpeed(0);
-    registerMap.speed = 0;
-    registerMapOld.speed = 0;
-    stepper.setMaxSpeed(0);
-    registerMap.maxSpeed = 0;
-    registerMapOld.maxSpeed = 0;
-    stepper.setAcceleration(0);
-    registerMap.acceleration = 0;
-    registerMapOld.acceleration = 0;
-
     //Disable power if user has configured motor to do so
     if (registerMap.motorConfig.disableMotorOnEStop)
+    {
       stepper.disableOutputs();
+      registerMap.motorControl.disableMotor = true;
+    }
   }
 }
 
@@ -107,17 +98,46 @@ void limitSwitchTriggered()
     {
       registerMap.motorStatus.isLimited = true;
       limitState = LIMIT_STATE_LIMITED_SET;
-      Serial.println("Limit!");
 
       //Stop motor if option is enabled
       if (registerMap.motorConfig.stopOnLimitSwitchPress == true)
       {
-        stepper.stop();
+        hardStop();
       }
-
-      //TODO: Disable motor outputs if option enabled
-      //  if (registerMap.motorConfig.disableMotorPositionReached)
-      //    stepper.disableOutputs();
     }
   }
+}
+
+//This causes a hard stop and resets the library to zero state
+//This is used to prevent the library from trying to move the motor
+//after a stop condition (limit, estop, command, etc).
+void hardStop()
+{
+  //Setting the hard stop bit will prevent any future moves of the stepper
+  registerMap.motorControl.hardStop = true;
+
+  //Clear accelstepper parameters and update memoryMap accordingly
+  stepper.setSpeed(0);
+  registerMap.speed = 0;
+  registerMapOld.speed = 0;
+
+  stepper.setMaxSpeed(0);
+  registerMap.maxSpeed = 0;
+  registerMapOld.maxSpeed = 0;
+
+  stepper.setAcceleration(0);
+  registerMap.acceleration = 0;
+  registerMapOld.acceleration = 0;
+
+  stepper.move(0);
+  registerMap.move = 0;
+  registerMapOld.move = 0;
+
+  stepper.moveTo(0);
+  registerMap.moveTo = 0;
+  registerMapOld.moveTo = 0;
+
+  stepper.setCurrentPosition(0);
+  registerMap.currentPos = 0;
+  registerMapOld.currentPos = 0;
 }
