@@ -39,7 +39,7 @@ const uint8_t PIN_ENABLE = 10;
 const uint8_t PIN_MS1 = 4;
 const uint8_t PIN_MS2 = 5;
 const uint8_t PIN_MS3 = 6;
-const uint8_t PIN_MAXCURRENT_PWM = 5;
+const uint8_t PIN_MAXCURRENT_PWM = 11;
 const uint8_t PIN_ADDRESS = 9;
 const uint8_t PIN_ESTOP_SWITCH = 2; //E-stop
 const uint8_t PIN_LIMIT_SWITCH = 3; //Limit switch
@@ -62,8 +62,8 @@ volatile memoryMap registerMap {
   0x00000000,          //acceleration (float)
   0x00000000,          //speed (float)
   0x00,                //unlockSpeedNVM
-  0x0000,              //holdCurrent
-  0x0000,              //runCurrent
+  0x03E8,              //holdCurrent
+  0x03E8,              //runCurrent
   I2C_ADDRESS_DEFAULT, //i2cAddress
 };
 
@@ -84,8 +84,8 @@ volatile memoryMap registerMapOld {
   0x00000000,          //acceleration (float)
   0x00000000,          //speed (float)
   0x00,                //unlockSpeedNVM
-  0x0000,              //holdCurrent
-  0x0000,              //runCurrent
+  0x03E8,              //holdCurrent
+  0x03E8,              //runCurrent
   I2C_ADDRESS_DEFAULT, //i2cAddress
 };
 
@@ -161,6 +161,15 @@ enum ADRState
 };
 volatile byte adrState = ADR_STATE_SOFTWARE;
 
+//State machine for the PWM Current
+//We are either holding or running
+enum PWMState
+{
+  PWM_STATE_HOLDING = 0,
+  PWM_STATE_RUNNING,
+};
+volatile byte pwmState = PWM_STATE_RUNNING; //This should cause the device to go to HOLD state at POR
+
 volatile bool newData = false; //Goes true when we recieve new bytes from the users. Calls accelstepper functions with new registerMap values.
 volatile bool newMoveValue = false; //Goes true when user has written a value to the move register
 volatile bool newPositionValue = false; //Goes true when user has written a value to the currentPos register
@@ -186,8 +195,6 @@ void setup(void)
   //Attach state-change of interrupt pins to corresponding ISRs
   attachInterrupt(digitalPinToInterrupt(PIN_ESTOP_SWITCH), eStopTriggered, FALLING);
   attachInterrupt(digitalPinToInterrupt(PIN_LIMIT_SWITCH), limitSwitchTriggered, FALLING);
-
-  analogWrite(PIN_MAXCURRENT_PWM, registerMap.holdCurrent);
 
   startI2C(); //Determine the I2C address to be using and listen on I2C bus
 
@@ -226,6 +233,9 @@ void loop(void)
 
   //Check to see if we need to drive interrupt pin high or low
   updateInterruptPin();
+
+  //Set the max current based on whether we are running or holding
+  updateCurrents();
 
   //Run the stepper motor in the user chosen mode
   if (registerMap.motorStatus.eStopped == false)
@@ -272,10 +282,61 @@ void setupGPIO()
   stepper.setEnablePin(PIN_ENABLE);
   stepper.setPinsInverted(false, false, true); //Invert enable
   stepper.enableOutputs();
-  
+
+  analogWrite(PIN_MAXCURRENT_PWM, 255 / 2);
 }
 
+//Update the analog PWM output going into the Max Current Ref
+//pin on the driver. This allows us to have different max current
+//for running and for holding.
 void updateCurrents()
 {
-  analogWrite(PIN_MAXCURRENT_PWM, registerMap.holdCurrent);
+  //Based on current vs target position, determine what state we're in
+  //if (stepper.isRunning()) //Doesn't work in runToPosition mode
+  if (stepper.currentPosition() != stepper.targetPosition() && pwmState == PWM_STATE_HOLDING)
+  {
+    //We're moving!
+    Serial.println("Run current");
+    analogWrite(PIN_MAXCURRENT_PWM, convertCurrentToPWM(registerMap.runCurrent));
+    pwmState = PWM_STATE_RUNNING;
+  }
+  else if (stepper.currentPosition() == stepper.targetPosition() && pwmState == PWM_STATE_RUNNING)
+  {
+    //We're not moving
+    Serial.println("Hold current");
+    analogWrite(PIN_MAXCURRENT_PWM, convertCurrentToPWM(registerMap.holdCurrent));
+    pwmState = PWM_STATE_HOLDING;
+  }
+}
+
+//Takes a run or hold current of up to 2000(mA) and
+//converts that to a PWM value where 1.7V = 2000mA
+//1.7V / 3.3V = X / 255
+uint8_t convertCurrentToPWM(uint16_t current)
+{
+#ifdef PRODUCTION_TARGET //is a 3.3V system
+  int maxPWM = (uint16_t)170 * 255 / 330; //~131
+#else //System is 5V Uno
+  int maxPWM = (uint16_t)170 * 255 / 500; //~86
+#endif
+
+  int pwmValue = map(current, 0, 2000, 0, maxPWM);
+  return (pwmValue);
+}
+
+//Convert a 0 to 2000mA current value to a voltage
+//we should be able to detect with a DMM
+float convertCurrentToVoltage(uint16_t current)
+{
+#ifdef PRODUCTION_TARGET
+  int maxPWM = (uint16_t)170 * 255 / 330; // 3.3V system = ~131
+  int pwmValue = map(current, 0, 2000, 0, maxPWM);
+  float voltage = 3.3 * pwmValue / 255.0;
+#else
+  int maxPWM = (uint16_t)170 * 255 / 500; // 5V system
+  int pwmValue = map(current, 0, 2000, 0, maxPWM);
+  float voltage = 5.0 * pwmValue / 255.0;
+#endif
+
+  return (voltage);
 }

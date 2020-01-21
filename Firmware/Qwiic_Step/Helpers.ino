@@ -72,7 +72,7 @@ void printState()
 #ifndef PRODUCTION_TARGET
   Serial.println();
 
-  Serial.print("Register map:");
+  Serial.println("Register map:");
 
   Serial.print("Firmware version: 0x");
   if (*(registerPointer + 2) < 0x10)
@@ -246,23 +246,45 @@ void printState()
   Serial.print("Unlock speed NVM: 0x");
   Serial.println(*(registerPointer + 0x24), HEX);
 
-  Serial.print("Hold current: 0x");
-  if (*(registerPointer + 0x26) < 0x10)
-    Serial.print("0");
-  Serial.print(*(registerPointer + 0x26), HEX);
-  if (*(registerPointer + 0x25) < 0x10)
-    Serial.print("0");
-  Serial.println(*(registerPointer + 0x25), HEX);
+  Serial.print("Hold current: ");
+  Serial.print(registerMap.holdCurrent);
+  Serial.print(" or ");
+  Serial.print(convertCurrentToVoltage(registerMap.holdCurrent), 3);
+  Serial.println("V");
+  //  if (*(registerPointer + 0x26) < 0x10)
+  //    Serial.print("0");
+  //  Serial.print(*(registerPointer + 0x26), HEX);
+  //  if (*(registerPointer + 0x25) < 0x10)
+  //    Serial.print("0");
+  //  Serial.println(*(registerPointer + 0x25), HEX);
 
-  Serial.print("Run current: 0x");
-  if (*(registerPointer + 0x28) < 0x10)
-    Serial.print("0");
-  Serial.print(*(registerPointer + 0x28), HEX);
-  if (*(registerPointer + 0x27) < 0x10)
-    Serial.print("0");
-  Serial.println(*(registerPointer + 0x27), HEX);
+  Serial.print("Run current: ");
+  Serial.print(registerMap.runCurrent);
+  Serial.print(" or ");
+  Serial.print(convertCurrentToVoltage(registerMap.runCurrent), 3);
+  Serial.println("V");
+  //  if (*(registerPointer + 0x28) < 0x10)
+  //    Serial.print("0");
+  //  Serial.print(*(registerPointer + 0x28), HEX);
+  //  if (*(registerPointer + 0x27) < 0x10)
+  //    Serial.print("0");
+  //  Serial.println(*(registerPointer + 0x27), HEX);
 
   Serial.print("I2C address: 0x");
   Serial.println(*(registerPointer + 0x29), HEX);
+
+  Serial.print("POR move: ");
+  Serial.println(PORsettings.move);
+  Serial.print("POR speed: ");
+  Serial.println(PORsettings.speed);
 #endif
 }
+
+//Print debug statements only if we have debug enabled
+//void debug(char * message)
+//{
+//  if(printDebug)
+//  {
+//    Serial.print(debug);
+//  }
+//}

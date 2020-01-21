@@ -41,8 +41,12 @@ void readSystemSettings()
   {
     registerMap.move = PORsettings.move;
     newMoveValue = true;
+    pwmState = PWM_STATE_HOLDING; //This will cause the main loop to enter PWM running mode
   }
-  if (PORsettings.speed != 0) registerMap.speed = PORsettings.speed;
+  if (PORsettings.speed != 0)
+  {
+    registerMap.speed = PORsettings.speed;
+  }
 
   //Pass these new settings back into the library
   updateParameters();
