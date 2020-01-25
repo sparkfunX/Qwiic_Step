@@ -14,14 +14,6 @@
 AccelStepper stepper(AccelStepper::DRIVER, STEP, DIRECTION); 
 
 int adc_out;
-int v_out;
-float v_sense;
-float i_sense;
-float r_sense;
-
-uint16_t n = 0;
-long sum = 0;
-int avg;
 
 void setup()
 {
@@ -47,15 +39,12 @@ void setup()
   stepper.setMaxSpeed(1000);
   stepper.setSpeed(600);
 
-  //Initialize the value of r_sense
-  r_sense = 0.25; 
-
   //PWM signal of 0.1V at current reference pin
   int duty_cycle = (2/3.3) * 255;
   analogWrite(CURRENT_REFERENCE, duty_cycle);
 }
 
-#define numberOfSamples 16
+#define numberOfSamples 32
 int sense[numberOfSamples] = {0};
 byte senseSpot = 0;
 
@@ -63,37 +52,34 @@ void loop()
 {
   adc_out = analogRead(CURRENT_SENSE);
   sense[senseSpot++] = adc_out;
-//  if (senseSpot == numberOfSamples)
-//    senseSpot = 0;  //6806
 
   senseSpot %= numberOfSamples;  //6796
 
+  Serial.print("ADC: ");
   Serial.print(adc_out);
   Serial.print("\t");
 
   int adcAverage = avgOfSamples();
 
+  Serial.print("Avg: ");
   Serial.print(adcAverage);
   Serial.print("\t");
 
   float adcMV = (adcAverage * 1000 * 3.3) / 1023;
   float adcMA = adcMV / 0.11;
-  
+
+  Serial.print("Volt: ");
   Serial.print(adcMV);
   Serial.print("\t");
 
+  Serial.print("Curr: ");
   Serial.print(adcMA);
   Serial.print("\t");
 
-  
   Serial.println();
   
-//  Serial.print("This is the sense current: ");
-//  Serial.println(i_sense);
-  
   stepper.runSpeed();
-  delay(1);
-  n++;
+//  delay(1);
 }
 
 int avgOfSamples(){
