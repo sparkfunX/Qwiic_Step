@@ -21,15 +21,15 @@ enum stepOptions {
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("SparkFun Stepper Example");
 
   delay(5); //Wait for Easy Driver to wake up
 
   //stepper.setEnablePin(ENABLE);
   pinMode(ENABLE, OUTPUT);
-  //digitalWrite(ENABLE, LOW);
-  digitalWrite(ENABLE, HIGH);
+  digitalWrite(ENABLE, LOW);
+  //digitalWrite(ENABLE, HIGH);
 
   pinMode(MS1, OUTPUT);
   pinMode(MS2, OUTPUT);
