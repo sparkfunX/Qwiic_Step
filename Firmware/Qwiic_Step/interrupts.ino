@@ -22,7 +22,7 @@ void receiveEvent(int numberOfBytesReceived)
     }
   }
 
-  digitalWrite(DEBUG_PIN, LOW);
+  digitalWrite(PIN_DEBUG, LOW);
 
   //One byte received is simply the master setting the registerNumber
   if (numberOfBytesReceived > 1)
@@ -48,7 +48,7 @@ void receiveEvent(int numberOfBytesReceived)
     updateParameters(); //Pass any new speed, accel, etc values to the library
   }
 
-  digitalWrite(DEBUG_PIN, HIGH);
+  digitalWrite(PIN_DEBUG, HIGH);
 }
 
 //Respond to read commands

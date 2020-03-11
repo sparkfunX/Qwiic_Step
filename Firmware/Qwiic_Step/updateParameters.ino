@@ -4,7 +4,7 @@
 //Determine what's new by comparing old register map against new data
 void updateParameters()
 {
-  //digitalWrite(DEBUG_PIN, HIGH);
+  //digitalWrite(PIN_DEBUG, HIGH);
 
   //Check each register in the order they appear in the map
   bool newValueToRecord = false;
@@ -211,5 +211,5 @@ void updateParameters()
     recordRegisterMap();
   }
 
-  //digitalWrite(DEBUG_PIN, LOW);
+  //digitalWrite(PIN_DEBUG, LOW);
 } //End updateParameters()

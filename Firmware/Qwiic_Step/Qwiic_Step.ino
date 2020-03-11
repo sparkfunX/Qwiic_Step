@@ -14,7 +14,7 @@
 #define LOCATION_REGISTERMAP 0 //Location in EEPROM. Map is ~41 bytes currently.
 #define LOCATION_PORSETTINGS 100 //Location in EEPROM for POR settings (for headless operation).
 
-//#define PRODUCTION_TARGET 1 //Uncomment to use the production code
+#define PRODUCTION_TARGET 1 //Uncomment to use the production code
 
 //Hardware connections
 #if defined(PRODUCTION_TARGET) //Used in production
@@ -24,15 +24,16 @@ const uint8_t PIN_DIRECTION = 6;
 const uint8_t PIN_MS1 = 9;
 const uint8_t PIN_MS2 = 8;
 const uint8_t PIN_MS3 = 7;
-const uint8_t PIN_ADDRESS = 11;
+const uint8_t PIN_ADDRESS = A7;
 const uint8_t PIN_MAXCURRENT_PWM = 5;
 const uint8_t PIN_CRRENT_SENSE = A6;
-const uint8_t PIN_A49885_RESET = 4;  //May not be needed
+const uint8_t PIN_A49885_RESET = A0;
 const uint8_t PIN_ESTOP_SWITCH = 2; //E-Stop
 const uint8_t PIN_LIMIT_SWITCH = 3; //Limit switch
 const uint8_t PIN_INT_OUTPUT = A1;
+const uint8_t PIN_DEBUG = A2; //Routed to no where
 #else //Used for development
-const uint8_t DEBUG_PIN = A3;
+const uint8_t PIN_DEBUG = A3;
 const uint8_t PIN_STEP = 7;
 const uint8_t PIN_DIRECTION = 8;
 const uint8_t PIN_ENABLE = 10;
@@ -198,16 +199,14 @@ void setup(void)
 
   startI2C(); //Determine the I2C address to be using and listen on I2C bus
 
-#ifndef PRODUCTION_TARGET
   Serial.print("Address: 0x");
   Serial.println(registerMap.i2cAddress, HEX);
-#endif
 
 }
 
 void loop(void)
 {
-#ifndef PRODUCTION_TARGET
+//#ifndef PRODUCTION_TARGET
   if (Serial.available())
   {
     byte incoming = Serial.read();
@@ -229,7 +228,7 @@ void loop(void)
       Serial.println();
     }
   }
-#endif
+//#endif
 
   //Check to see if we need to drive interrupt pin high or low
   updateInterruptPin();
@@ -259,8 +258,8 @@ void loop(void)
 void setupGPIO()
 {
 #ifndef PRODUCTION_TARGET
-  pinMode(DEBUG_PIN, OUTPUT);
-  digitalWrite(DEBUG_PIN, HIGH);
+  pinMode(PIN_DEBUG, OUTPUT);
+  digitalWrite(PIN_DEBUG, HIGH);
 #endif
 
   //Default to full step mode for now
@@ -274,10 +273,6 @@ void setupGPIO()
   pinMode(PIN_ADDRESS, INPUT_PULLUP);
   pinMode(PIN_ESTOP_SWITCH, INPUT_PULLUP); //E-Stop
   pinMode(PIN_LIMIT_SWITCH, INPUT_PULLUP); //Limit Switch
-
-  //    pinMode(curr_ref_pwm, OUTPUT);
-  //    pinMode(curr_sense, INPUT);
-  //    pinMode(a49885_reset, OUTPUT);
 
   stepper.setEnablePin(PIN_ENABLE);
   stepper.setPinsInverted(false, false, true); //Invert enable
@@ -321,6 +316,8 @@ uint8_t convertCurrentToPWM(uint16_t current)
 #endif
 
   int pwmValue = map(current, 0, 2000, 0, maxPWM);
+  Serial.print("pwmValue: ");
+  Serial.println(pwmValue);
   return (pwmValue);
 }
 
