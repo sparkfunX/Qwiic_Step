@@ -22,7 +22,10 @@ void startI2C()
   //Based on the PORsettings, figure out what I2C address state we're in
   if (PORsettings.i2cAddressState == ADR_STATE_SOFTWARE)
   {
-    if (digitalRead(PIN_ADDRESS) == LOW) //Jumper is closed
+    //This is a hack to make x02 hardware work. ADC7 is input only and doesn't have internal pullups: https://forum.arduino.cc/index.php?topic=123176.0
+    int addressAnalogValue = analogRead(PIN_ADDRESS);
+    if(addressAnalogValue < 10) //Jumper is closed
+//    if (digitalRead(PIN_ADDRESS) == LOW) //Jumper is closed
     {
       //Change states
       Serial.println("I2C in jumper state");
