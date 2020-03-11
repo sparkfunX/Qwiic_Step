@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="9.4.2">
+<eagle version="9.5.2">
 <drawing>
 <settings>
 <setting alwaysvectorfont="yes"/>
@@ -11334,10 +11334,10 @@ These rules have been curated by SparkFuns DFM commitee. After doing much resear
 </element>
 <element name="JP7" library="SparkFun-Hardware" package="STAND-OFF" value="STAND-OFF" x="48.26" y="2.54" smashed="yes"/>
 <element name="JP10" library="SparkFun-Hardware" package="STAND-OFF" value="STAND-OFF" x="48.26" y="48.26" smashed="yes"/>
-<element name="R11" library="SparkFun-Resistors" package="0603" value="1k" x="11.43" y="30.48" smashed="yes">
+<element name="R11" library="SparkFun-Resistors" package="0603" value="0" x="11.43" y="30.48" smashed="yes">
 <attribute name="NAME" x="11.43" y="31.242" size="0.6096" layer="25" font="vector" ratio="20" align="bottom-center"/>
-<attribute name="PROD_ID" value="RES-07856" x="11.43" y="30.48" size="1.778" layer="27" font="vector" ratio="15" display="off"/>
-<attribute name="VALUE" value="1k" x="11.43" y="29.718" size="0.6096" layer="27" font="vector" ratio="20" align="top-center"/>
+<attribute name="PROD_ID" value="RES-08609" x="11.43" y="30.48" size="1.778" layer="27" font="vector" ratio="15" display="off"/>
+<attribute name="VALUE" value="0" x="11.43" y="29.718" size="0.6096" layer="27" font="vector" ratio="20" align="top-center"/>
 </element>
 <element name="D3" library="SparkFun-LED" package="LED-0603" value="GREEN" x="7.62" y="30.48" smashed="yes" rot="R180">
 <attribute name="NAME" x="7.62" y="29.845" size="0.6096" layer="25" font="vector" ratio="20" rot="R180" align="bottom-center"/>
