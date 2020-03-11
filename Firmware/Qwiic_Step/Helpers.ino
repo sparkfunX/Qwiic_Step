@@ -72,7 +72,7 @@ void startI2C()
 //Note: some of these values are floating point so HEX printing will look odd.
 void printState()
 {
-#ifndef PRODUCTION_TARGET
+//#ifndef PRODUCTION_TARGET
   Serial.println();
 
   Serial.println("Register map:");
@@ -280,7 +280,7 @@ void printState()
   Serial.println(PORsettings.move);
   Serial.print("POR speed: ");
   Serial.println(PORsettings.speed);
-#endif
+//#endif
 }
 
 //Print debug statements only if we have debug enabled

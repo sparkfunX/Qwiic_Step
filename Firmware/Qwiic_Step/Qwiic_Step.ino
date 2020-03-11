@@ -201,7 +201,6 @@ void setup(void)
 
   Serial.print("Address: 0x");
   Serial.println(registerMap.i2cAddress, HEX);
-
 }
 
 void loop(void)
