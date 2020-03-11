@@ -1,13 +1,23 @@
 #include <AccelStepper.h>
 
-#define STEP 7
-#define DIRECTION 8
-#define ENABLE 10
-#define MS1 4
-#define MS2 5
-#define MS3 6
+//Breadboard
+//#define STEP 7
+//#define DIRECTION 8
+//#define ENABLE 10
+//#define MS1 4
+//#define MS2 5
+//#define MS3 6
+//#define CURRENT_REFERENCE 11 //PWM capable pin
 
-#define CURRENT_REFERENCE 11 //PWM capapble pin
+//Production hardware
+#define STEP A3
+#define DIRECTION 6
+#define ENABLE 10
+#define MS1 9
+#define MS2 8
+#define MS3 7
+#define CURRENT_REFERENCE 5 //PWM capable pin
+
 
 AccelStepper stepper(AccelStepper::DRIVER, STEP, DIRECTION); // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5
 
@@ -25,6 +35,8 @@ void setup()
   Serial.println("SparkFun Stepper Example");
 
   delay(5); //Wait for Easy Driver to wake up
+
+  analogWrite(CURRENT_REFERENCE, 125);
 
   //stepper.setEnablePin(ENABLE);
   pinMode(ENABLE, OUTPUT);
