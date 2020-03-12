@@ -9,7 +9,7 @@
 
 AccelStepper stepper(AccelStepper::DRIVER, STEP, DIRECTION);  //Defaults to AccelStepper::FULL4WIRE
 
-enum setOptions {
+enum stepOptions {
   STEP_SIZE_FULL = 0,
   STEP_SIZE_HALF,
   STEP_SIZE_QUARTER,
