@@ -1,9 +1,15 @@
 /*
+  This sketch allows the driving of a motor via text menu without the full Qwiic Step I2C firmware. This
+  is helpful for testing various aspects of the board.
+  
   Tested with the following:
     Bench power supply, 12V, 2A max. https://www.sparkfun.com/products/retired/9291
     1.7A per phase stepper: https://www.sparkfun.com/products/10846
 
-  Press a and z to raise or lower the voltage sent to stepper IC as the 'max' trip current voltage.
+  Press a/z to raise or lower the voltage sent to stepper IC as the 'max' trip current voltage.
+  Press +/- to increase/decrease the step speed. 0 to stop.
+  Press 1/2/3/4/5 to modify the step size.
+  Press r to take an ADC reading from the opamp.
 
   To test large current loads, set to single step mode, step at 600, and raise the trip voltage to ~2V.
   This cause the motor to pull ~1A and heat the board significantly.
