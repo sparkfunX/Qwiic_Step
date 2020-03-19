@@ -249,7 +249,7 @@ void printState()
   Serial.println(*(registerPointer + 0x24), HEX);
 
   Serial.print("Hold voltage: ");
-  Serial.print(registerMap.holdVoltage, 3);
+  Serial.print(convertToFloat(registerMap.holdVoltage), 3);
   Serial.println("V");
   //  if (*(registerPointer + 0x26) < 0x10)
   //    Serial.print("0");
@@ -259,7 +259,7 @@ void printState()
   //  Serial.println(*(registerPointer + 0x25), HEX);
 
   Serial.print("Run voltage: ");
-  Serial.print(registerMap.runVoltage, 3);
+  Serial.print(convertToFloat(registerMap.runVoltage), 3);
   Serial.println("V");
   //  if (*(registerPointer + 0x28) < 0x10)
   //    Serial.print("0");
@@ -269,7 +269,7 @@ void printState()
   //  Serial.println(*(registerPointer + 0x27), HEX);
 
   Serial.print("I2C address: 0x");
-  Serial.println(*(registerPointer + 0x29), HEX);
+  Serial.println(*(registerPointer + 0x2D), HEX);
 
   Serial.print("POR move: ");
   Serial.println(PORsettings.move);

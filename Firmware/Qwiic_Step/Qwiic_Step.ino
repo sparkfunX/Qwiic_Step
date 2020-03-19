@@ -63,12 +63,12 @@ volatile memoryMap registerMap {
   0x00000000,          //acceleration (float)
   0x00000000,          //speed (float)
   0x00,                //unlockSpeedNVM
-  1.2,                 //holdVoltage
-  1.2,                 //runVoltage
+  0x3F99999A,          //holdVoltage - 1.2V
+  0x3F99999A,          //runVoltage - 1.2V
   I2C_ADDRESS_DEFAULT, //i2cAddress
 };
 
-//this memory map holds temporary "old" values so we don't call accelstepper functions an unnecessary amount of times
+//This memory map holds temporary "old" values so we don't call accelstepper functions an unnecessary amount of times
 volatile memoryMap registerMapOld {
   DEVICE_ID,           //id
   FIRMWARE_VERSION,    //firmware
@@ -85,8 +85,8 @@ volatile memoryMap registerMapOld {
   0x00000000,          //acceleration (float)
   0x00000000,          //speed (float)
   0x00,                //unlockSpeedNVM
-  1.2,                 //holdVoltage
-  1.2,                 //runVoltage
+  0x3F99999A,          //holdVoltage - 1.2V
+  0x3F99999A,          //runVoltage - 1.2V
   I2C_ADDRESS_DEFAULT, //i2cAddress
 };
 
@@ -294,14 +294,16 @@ void updateVoltages()
   {
     //We're moving!
     Serial.println("Running voltage");
-    analogWrite(PIN_MAXCURRENT_PWM, convertVoltageToPWM(registerMap.runVoltage));
+    float voltage = convertToFloat(registerMap.runVoltage); //Convert uint32 to float
+    analogWrite(PIN_MAXCURRENT_PWM, convertVoltageToPWM(voltage));
     pwmState = PWM_STATE_RUNNING;
   }
   else if (stepper.currentPosition() == stepper.targetPosition() && pwmState == PWM_STATE_RUNNING)
   {
     //We're not moving
     Serial.println("Holding voltage");
-    analogWrite(PIN_MAXCURRENT_PWM, convertVoltageToPWM(registerMap.holdVoltage));
+    float voltage = convertToFloat(registerMap.holdVoltage); //Convert uint32 to float
+    analogWrite(PIN_MAXCURRENT_PWM, convertVoltageToPWM(voltage));
     pwmState = PWM_STATE_HOLDING;
   }
 }
@@ -310,7 +312,7 @@ void updateVoltages()
 //converts that to a PWM value.
 uint8_t convertVoltageToPWM(float voltage)
 {
-  int pwmValue = mapfloat(voltage, 0.0, 3.3, 0, 255);
+  int pwmValue = mapfloat(voltage, 0.0, 3.3, 0.0, 255.0);
   Serial.print("pwmValue: ");
   Serial.println(pwmValue);
   return (pwmValue);

@@ -75,8 +75,8 @@ typedef struct memoryMap
 
   uint8_t unlockSpeedNVM;
 
-  float holdVoltage;
-  float runVoltage;
+  uint32_t holdVoltage;
+  uint32_t runVoltage;
 
   uint8_t i2cAddress;
 
