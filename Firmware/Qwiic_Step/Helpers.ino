@@ -14,7 +14,6 @@ float convertToFloat(uint32_t myVal)
   return u.f;
 }
 
-
 //Determines the needed I2C address from NVM and starts as slave
 //Registers the receive and request I2C interrupt handlers
 void startI2C()
@@ -249,10 +248,8 @@ void printState()
   Serial.print("Unlock speed NVM: 0x");
   Serial.println(*(registerPointer + 0x24), HEX);
 
-  Serial.print("Hold current: ");
-  Serial.print(registerMap.holdCurrent);
-  Serial.print(" or ");
-  Serial.print(convertCurrentToVoltage(registerMap.holdCurrent), 3);
+  Serial.print("Hold voltage: ");
+  Serial.print(registerMap.holdVoltage, 3);
   Serial.println("V");
   //  if (*(registerPointer + 0x26) < 0x10)
   //    Serial.print("0");
@@ -261,10 +258,8 @@ void printState()
   //    Serial.print("0");
   //  Serial.println(*(registerPointer + 0x25), HEX);
 
-  Serial.print("Run current: ");
-  Serial.print(registerMap.runCurrent);
-  Serial.print(" or ");
-  Serial.print(convertCurrentToVoltage(registerMap.runCurrent), 3);
+  Serial.print("Run voltage: ");
+  Serial.print(registerMap.runVoltage, 3);
   Serial.println("V");
   //  if (*(registerPointer + 0x28) < 0x10)
   //    Serial.print("0");

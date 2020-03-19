@@ -167,18 +167,18 @@ void updateParameters()
     registerMap.unlockSpeedNVM = 0;
   }
 
-  //0x25 holdCurrent register
-  if (registerMapOld.holdCurrent != registerMap.holdCurrent)
+  //0x25 holdVoltage register
+  if (registerMapOld.holdVoltage != registerMap.holdVoltage)
   {
     newValueToRecord = true;
-    registerMapOld.holdCurrent = registerMap.holdCurrent;
+    registerMapOld.holdVoltage = registerMap.holdVoltage;
   }
 
-  //0x27 runCurrent register
-  if (registerMapOld.runCurrent != registerMap.runCurrent)
+  //0x27 runVoltage register
+  if (registerMapOld.runVoltage != registerMap.runVoltage)
   {
     newValueToRecord = true;
-    registerMapOld.runCurrent = registerMap.runCurrent;
+    registerMapOld.runVoltage = registerMap.runVoltage;
   }
 
   //0x29 i2cAddress register

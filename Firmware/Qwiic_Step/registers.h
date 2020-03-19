@@ -75,8 +75,8 @@ typedef struct memoryMap
 
   uint8_t unlockSpeedNVM;
 
-  uint16_t holdCurrent; //Max 2000mA
-  uint16_t runCurrent;  //Max 2000mA
+  float holdVoltage;
+  float runVoltage;
 
   uint8_t i2cAddress;
 

@@ -63,8 +63,8 @@ volatile memoryMap registerMap {
   0x00000000,          //acceleration (float)
   0x00000000,          //speed (float)
   0x00,                //unlockSpeedNVM
-  0x03E8,              //holdCurrent
-  0x03E8,              //runCurrent
+  1.2,                 //holdVoltage
+  1.2,                 //runVoltage
   I2C_ADDRESS_DEFAULT, //i2cAddress
 };
 
@@ -85,8 +85,8 @@ volatile memoryMap registerMapOld {
   0x00000000,          //acceleration (float)
   0x00000000,          //speed (float)
   0x00,                //unlockSpeedNVM
-  0x03E8,              //holdCurrent
-  0x03E8,              //runCurrent
+  1.2,                 //holdVoltage
+  1.2,                 //runVoltage
   I2C_ADDRESS_DEFAULT, //i2cAddress
 };
 
@@ -107,8 +107,8 @@ memoryMap protectionMap = {
   0xFFFFFFFF,         //acceleration (float)
   0xFFFFFFFF,         //speed (float)
   0xFF,               //unlockSpeedNVM
-  0xFFFF,             //holdCurrent
-  0xFFFF,             //runCurrent
+  0xFFFFFFFF,         //holdVoltage
+  0xFFFFFFFF,         //runVoltage
   0xFF,               //i2cAddress
 };
 
@@ -232,8 +232,8 @@ void loop(void)
   //Check to see if we need to drive interrupt pin high or low
   updateInterruptPin();
 
-  //Set the max current based on whether we are running or holding
-  updateCurrents();
+  //Set the max voltage (PWM through an RC filter) on the VRef pin based on whether we are running or holding
+  updateVoltages();
 
   //Run the stepper motor in the user chosen mode
   if (registerMap.motorStatus.eStopped == false)
@@ -282,57 +282,43 @@ void setupGPIO()
 
 //Update the analog PWM output going into the Max Current Ref
 //pin on the driver. This allows us to have different max current
-//for running and for holding.
-void updateCurrents()
+//for running and for holding. The relation between the voltage on VRef
+//and the max trip current is too complex to code. We leave it up to
+//the user to select the appropriate voltage to achieve their desired 
+//trip current.
+void updateVoltages()
 {
   //Based on current vs target position, determine what state we're in
   //if (stepper.isRunning()) //Doesn't work in runToPosition mode
   if (stepper.currentPosition() != stepper.targetPosition() && pwmState == PWM_STATE_HOLDING)
   {
     //We're moving!
-    Serial.println("Run current");
-    analogWrite(PIN_MAXCURRENT_PWM, convertCurrentToPWM(registerMap.runCurrent));
+    Serial.println("Running voltage");
+    analogWrite(PIN_MAXCURRENT_PWM, convertVoltageToPWM(registerMap.runVoltage));
     pwmState = PWM_STATE_RUNNING;
   }
   else if (stepper.currentPosition() == stepper.targetPosition() && pwmState == PWM_STATE_RUNNING)
   {
     //We're not moving
-    Serial.println("Hold current");
-    analogWrite(PIN_MAXCURRENT_PWM, convertCurrentToPWM(registerMap.holdCurrent));
+    Serial.println("Holding voltage");
+    analogWrite(PIN_MAXCURRENT_PWM, convertVoltageToPWM(registerMap.holdVoltage));
     pwmState = PWM_STATE_HOLDING;
   }
 }
 
-//Takes a run or hold current of up to 2000(mA) and
-//converts that to a PWM value where 1.7V = 2000mA
-//1.7V / 3.3V = X / 255
-uint8_t convertCurrentToPWM(uint16_t current)
+//Takes a run or hold voltage and
+//converts that to a PWM value.
+uint8_t convertVoltageToPWM(float voltage)
 {
-#ifdef PRODUCTION_TARGET //is a 3.3V system
-  int maxPWM = (uint16_t)170 * 255 / 330; //~131
-#else //System is 5V Uno
-  int maxPWM = (uint16_t)170 * 255 / 500; //~86
-#endif
-
-  int pwmValue = map(current, 0, 2000, 0, maxPWM);
+  int pwmValue = mapfloat(voltage, 0.0, 3.3, 0, 255);
   Serial.print("pwmValue: ");
   Serial.println(pwmValue);
   return (pwmValue);
 }
 
-//Convert a 0 to 2000mA current value to a voltage
-//we should be able to detect with a DMM
-float convertCurrentToVoltage(uint16_t current)
+float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)
 {
-#ifdef PRODUCTION_TARGET
-  int maxPWM = (uint16_t)170 * 255 / 330; // 3.3V system = ~131
-  int pwmValue = map(current, 0, 2000, 0, maxPWM);
-  float voltage = 3.3 * pwmValue / 255.0;
-#else
-  int maxPWM = (uint16_t)170 * 255 / 500; // 5V system
-  int pwmValue = map(current, 0, 2000, 0, maxPWM);
-  float voltage = 5.0 * pwmValue / 255.0;
-#endif
+  if(x > in_max) x = in_max;
 
-  return (voltage);
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
