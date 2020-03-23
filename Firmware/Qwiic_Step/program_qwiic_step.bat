@@ -9,7 +9,7 @@
 @timeout 1
 
 @echo Flashing firmware...
-@avrdude -C avrdude.conf -pm328p -cusbtiny -e -Uflash:w:Qwiic_Step.ino.hex:i
+@avrdude -C avrdude.conf -pm328p -cusbtiny -e -Uflash:w:Qwiic_Step.ino.standard.hex:i
 
 @echo Done programming! Move on to the next board.
 @pause
