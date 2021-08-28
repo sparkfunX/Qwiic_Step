@@ -13,4 +13,3 @@ The Qwiic Step uses the ATmega328P with the standard Arduino/STK500 bootloader. 
 6) Press enter to begin programming.
 
 ![Output from avrdude](https://github.com/sparkfunX/Qwiic_Step/blob/master/Programming/Images/Qwiic%20Step%20Bootloading.jpg?raw=true)
-
