@@ -98,17 +98,17 @@ memoryMap protectionMap = {
   {1, 1, 1, 1, 1, 1}, //motorStatus {isRunning, isAccelerating, isDecelerating, isReached, isLimited, eStopped}
   {1, 1, 1, 1, 1, 1}, //motorConfig {ms1, ms2, ms3, disableMotorOnEStop, disableMotorOnPositionReached, stopOnLimitSwitchPress}
   {1, 1, 1, 1, 1},    //motorControl {runToPosition, runToPositionWithAccel, runContinuous, hardStop, disableMotor}
-  0xFFFFFFFF,         //currentPos
+  (int32_t)0xFFFFFFFF,         //currentPos
   0x00000000,         //distanceToGo
-  0xFFFFFFFF,         //move
+  (int32_t)0xFFFFFFFF,         //move
   0xFF,               //unlockMoveNVM
-  0xFFFFFFFF,         //moveTo
-  0xFFFFFFFF,         //maxSpeed (float)
-  0xFFFFFFFF,         //acceleration (float)
-  0xFFFFFFFF,         //speed (float)
+  (int32_t)0xFFFFFFFF,         //moveTo
+  (uint32_t)0xFFFFFFFF,         //maxSpeed (float)
+  (uint32_t)0xFFFFFFFF,         //acceleration (float)
+  (uint32_t)0xFFFFFFFF,         //speed (float)
   0xFF,               //unlockSpeedNVM
-  0xFFFFFFFF,         //holdVoltage
-  0xFFFFFFFF,         //runVoltage
+  (uint32_t)0xFFFFFFFF,         //holdVoltage
+  (uint32_t)0xFFFFFFFF,         //runVoltage
   0xFF,               //i2cAddress
 };
 

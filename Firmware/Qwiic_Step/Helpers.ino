@@ -44,23 +44,23 @@ void startI2C()
   }
 
   //Based on I2C Address state, pick our address
-  uint8_t address;
+  uint8_t unitAddress;
   if (PORsettings.i2cAddressState == ADR_STATE_SOFTWARE)
   {
     //Check if the address stored in memoryMap is valid
     if (registerMap.i2cAddress > 0x07 && registerMap.i2cAddress < 0x78)
-      address = registerMap.i2cAddress;
+      unitAddress = registerMap.i2cAddress;
     else //If the value is illegal, default to the default I2C address
-      address = I2C_ADDRESS_DEFAULT;
+      unitAddress = I2C_ADDRESS_DEFAULT;
   }
   else if (PORsettings.i2cAddressState == ADR_STATE_JUMPER)
   {
-    address = I2C_ADDRESS_FORCED; //Force address to I2C_ADDRESS_FORCED if user has closed the solder jumper
-    registerMap.i2cAddress = address;
+    unitAddress = I2C_ADDRESS_FORCED; //Force address to I2C_ADDRESS_FORCED if user has closed the solder jumper
+    registerMap.i2cAddress = unitAddress;
   }
 
   Wire.end();
-  Wire.begin(address); //Rejoin the I2C bus on new address
+  Wire.begin(unitAddress); //Rejoin the I2C bus on new address
 
   //Connect receive and request events to the interrupts
   Wire.onReceive(receiveEvent);

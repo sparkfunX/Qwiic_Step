@@ -49,7 +49,7 @@ typedef union {
   uint8_t byteWrapped;
 } controlBitField;
 
-typedef struct memoryMap
+struct memoryMap
 {
   uint8_t id;
   uint16_t firmware;
@@ -83,7 +83,7 @@ typedef struct memoryMap
   //  uint32_t moveNVM;
 };
 
-typedef struct nvmMemoryMap
+struct nvmMemoryMap
 {
   int32_t move;
   uint32_t speed; //Note this is a float, but communicated and stored as uint32
