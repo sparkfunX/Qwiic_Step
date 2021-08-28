@@ -8,7 +8,7 @@
 #include "registers.h"
 
 #define DEVICE_ID 0x60
-#define FIRMWARE_VERSION 0x0100
+#define FIRMWARE_VERSION 0x0101
 #define I2C_ADDRESS_DEFAULT 0x52
 #define I2C_ADDRESS_FORCED 0x51
 #define LOCATION_REGISTERMAP 0 //Location in EEPROM. Map is ~41 bytes currently.
