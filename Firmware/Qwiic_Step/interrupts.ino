@@ -1,4 +1,4 @@
-#define TWI_BUFFER_LENGTH BUFFER_LENGTH
+#define TWI_BUFFER_LENGTH 32
 
 //Respond to write commands
 //When board receives data bytes from Master this function is called as an interrupt

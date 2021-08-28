@@ -7,14 +7,15 @@ void updateParameters()
   //digitalWrite(PIN_DEBUG, HIGH);
 
   //Check each register in the order they appear in the map
-  bool newValueToRecord = false;
+
+  //Serial.println("UP");
 
   //0x03 interrupt config register
   if (registerMapOld.interruptConfig.isReachedInterruptEnable != registerMap.interruptConfig.isReachedInterruptEnable
       || registerMapOld.interruptConfig.isLimitedInterruptEnable != registerMap.interruptConfig.isLimitedInterruptEnable
      )
   {
-    newValueToRecord = true;
+    newSettingsToRecord = true;
   }
 
   //0x05 config register
@@ -23,7 +24,7 @@ void updateParameters()
       || registerMapOld.motorConfig.ms3 != registerMap.motorConfig.ms3
      )
   {
-    newValueToRecord = true;
+    newSettingsToRecord = true;
 
     //Update the step mode by flipping pins MS1, MS2, MS3
     digitalWrite(PIN_MS1, registerMap.motorConfig.ms1);
@@ -40,7 +41,7 @@ void updateParameters()
       || registerMapOld.motorConfig.stopOnLimitSwitchPress != registerMap.motorConfig.stopOnLimitSwitchPress
      )
   {
-    newValueToRecord = true;
+    newSettingsToRecord = true;
   }
 
   //0x06 mode register
@@ -50,7 +51,7 @@ void updateParameters()
       || registerMapOld.motorControl.hardStop != registerMap.motorControl.hardStop
      )
   {
-    newValueToRecord = true;
+    newSettingsToRecord = true;
 
     registerMapOld.motorControl.runToPosition = registerMap.motorControl.runToPosition;
     registerMapOld.motorControl.runToPositionWithAccel = registerMap.motorControl.runToPositionWithAccel;
@@ -60,7 +61,7 @@ void updateParameters()
 
   if (registerMapOld.motorControl.disableMotor != registerMap.motorControl.disableMotor)
   {
-    newValueToRecord = true;
+    newSettingsToRecord = true;
 
     if (registerMap.motorControl.disableMotor == true)
       stepper.disableOutputs();
@@ -119,7 +120,7 @@ void updateParameters()
   //Max speed must be set in the stepper library before move, moveTo, or accel
   if (registerMapOld.maxSpeed != registerMap.maxSpeed)
   {
-    newValueToRecord = true;
+    newSettingsToRecord = true;
     //    Serial.print("S");
     stepper.setMaxSpeed(convertToFloat(registerMap.maxSpeed));
     registerMapOld.maxSpeed = registerMap.maxSpeed;
@@ -128,7 +129,7 @@ void updateParameters()
   //0x1C acceleration register
   if (registerMapOld.acceleration != registerMap.acceleration)
   {
-    newValueToRecord = true;
+    newSettingsToRecord = true;
     //    Serial.print("A");
     stepper.setAcceleration(convertToFloat(registerMap.acceleration));
     registerMapOld.acceleration = registerMap.acceleration;
@@ -170,45 +171,27 @@ void updateParameters()
   //0x25 holdVoltage register
   if (registerMapOld.holdVoltage != registerMap.holdVoltage)
   {
-    newValueToRecord = true;
+    newSettingsToRecord = true;
     registerMapOld.holdVoltage = registerMap.holdVoltage;
   }
 
   //0x27 runVoltage register
   if (registerMapOld.runVoltage != registerMap.runVoltage)
   {
-    newValueToRecord = true;
+    newSettingsToRecord = true;
     registerMapOld.runVoltage = registerMap.runVoltage;
   }
 
   //0x29 i2cAddress register
   if (registerMapOld.i2cAddress != registerMap.i2cAddress)
   {
-    newValueToRecord = true;
+    newSettingsToRecord = true;
     registerMapOld.i2cAddress = registerMap.i2cAddress;
 
     PORsettings.i2cAddressState = ADR_STATE_SOFTWARE;
     recordPORsettings();
 
     startI2C(); //Begin operating at this new address
-  }
-
-  /*We don't want to constantly record the register map to NVM. It costs cycles
-    and can wear out the EEPROM. Thankfully EEPROM.put() automatically calls
-    update so only values that changed will be recorded. Additionally, we can be
-    proactive and ignore all registers that will be 0 at POR:
-        status
-        currentPos
-        distanceToGo
-        move
-        unlockMoveNVM
-        moveTo
-        speed
-        unlockSpeedNVM
-  */
-  if (newValueToRecord == true)
-  {
-    recordRegisterMap();
   }
 
   //digitalWrite(PIN_DEBUG, LOW);

@@ -8,7 +8,7 @@
 #include "registers.h"
 
 #define DEVICE_ID 0x60
-#define FIRMWARE_VERSION 0x0100
+#define FIRMWARE_VERSION 0x0101
 #define I2C_ADDRESS_DEFAULT 0x52
 #define I2C_ADDRESS_FORCED 0x51
 #define LOCATION_REGISTERMAP 0 //Location in EEPROM. Map is ~41 bytes currently.
@@ -179,6 +179,8 @@ unsigned long lastSpeedChange = 0; //Marks the time when previous speed last cha
 
 float nvmSpeed = 0; //This value is loaded from EEPROM, separate from resgisterMap. If != 0, gets loaded at POR
 
+volatile bool newSettingsToRecord = false; //Goes true when user has sent us new settings. Handled in loop().
+
 //Define a stepper and its pins
 AccelStepper stepper(AccelStepper::DRIVER, PIN_STEP, PIN_DIRECTION); //Stepper driver, 2 pins required
 
@@ -205,7 +207,7 @@ void setup(void)
 
 void loop(void)
 {
-//#ifndef PRODUCTION_TARGET
+  //#ifndef PRODUCTION_TARGET
   if (Serial.available())
   {
     byte incoming = Serial.read();
@@ -227,7 +229,7 @@ void loop(void)
       Serial.println();
     }
   }
-//#endif
+  //#endif
 
   //Check to see if we need to drive interrupt pin high or low
   updateInterruptPin();
@@ -250,6 +252,26 @@ void loop(void)
     else if (registerMap.motorControl.hardStop) {
       //Do nothing. This will cause motor to hold in place.
     }
+  }
+
+  /*We don't want to constantly record the register map to NVM. It costs cycles
+      and can wear out the EEPROM. Thankfully EEPROM.put() automatically calls
+      update so only values that changed will be recorded. Additionally, we can be
+      proactive and ignore all registers that will be 0 at POR:
+          status
+          currentPos
+          distanceToGo
+          move
+          unlockMoveNVM
+          moveTo
+          speed
+          unlockSpeedNVM
+  */
+  if (newSettingsToRecord == true)
+  {
+    newSettingsToRecord = false; //Important location: Keep before recordRegisterMap. See issue: https://github.com/sparkfunX/Qwiic_Step/issues/6
+    //Incase I2C ISR sets new settings while EEPROM is recording, newSettingsToRecord will go false and record again.
+    recordRegisterMap();
   }
 }
 
@@ -284,7 +306,7 @@ void setupGPIO()
 //pin on the driver. This allows us to have different max current
 //for running and for holding. The relation between the voltage on VRef
 //and the max trip current is too complex to code. We leave it up to
-//the user to select the appropriate voltage to achieve their desired 
+//the user to select the appropriate voltage to achieve their desired
 //trip current.
 void updateVoltages()
 {
@@ -320,7 +342,7 @@ uint8_t convertVoltageToPWM(float voltage)
 
 float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)
 {
-  if(x > in_max) x = in_max;
+  if (x > in_max) x = in_max;
 
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
